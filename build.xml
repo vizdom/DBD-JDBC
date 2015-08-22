@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="dbd-jdbc" default="dist" basedir=".">
+
+  <property name="client.dir" value="DBD-JDBC"/>
+  <property name="server.dir" value="server"/>
+  <property name="dist.dir" value="dist"/>
+  <property file="${server.dir}/dbd-jdbc.properties"/>
+
+  <target name="clean">
+    <makefile-target target="clean"/>
+    <ant antfile="build.xml" dir="${server.dir}" target="clean"/>
+  </target>
+
+  <target name="dist" depends="clean">
+    <antcall target="check-versions"/>
+    <ant antfile="build.xml" dir="${server.dir}" target="test"/>
+    <ant antfile="build.xml" dir="${server.dir}" target="dist"/>
+    <mkdir dir="${client.dir}/server"/>
+    <copy todir="${client.dir}/server">
+      <fileset dir="${server.dir}/dist"/>
+    </copy>
+    <make-makefile/>
+    <makefile-target target="test"/>
+    <makefile-target target="dist"/>
+  </target>
+
+  <target name="check-versions">
+    <exec executable="perl" outputproperty="dbd-jdbc">
+      <arg line='-I${client.dir}/lib -e "use DBD::JDBC; print $DBD::JDBC::VERSION;"'/>
+    </exec>
+    <exec executable="perl" outputproperty="bundle-dbd-jdbc">
+      <arg line='-I${client.dir}/lib -e "use Bundle::DBD::JDBC; print $Bundle::DBD::JDBC::VERSION;"'/>
+    </exec>
+
+    <echo>
+      DBD::JDBC:         ${dbd-jdbc}
+      Bundle::DBD::JDBC: ${bundle-dbd-jdbc}
+      Server:            ${dbd.jdbc.version}
+    </echo>
+
+    <fail message="Versions out of sync">
+      <condition>
+        <not>
+          <and>
+            <equals arg1="${dbd-jdbc}" arg2="${bundle-dbd-jdbc}"/>
+            <equals arg1="${dbd-jdbc}" arg2="${dbd.jdbc.version}"/>
+          </and>
+        </not>
+      </condition>
+    </fail>
+  </target>
+
+  <macrodef name="make-makefile">
+    <sequential>
+      <exec executable="perl" dir="${client.dir}">
+        <arg line="Makefile.PL"/>
+      </exec>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="makefile-target">
+    <attribute name="target" default=""/>
+    <sequential>
+      <exec executable="make" dir="${client.dir}">
+        <arg line="@{target}"/>
+      </exec>
+    </sequential>
+  </macrodef>
+
+</project>
