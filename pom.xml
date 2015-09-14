@@ -1,0 +1,15 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.vizdom</groupId>
+	<artifactId>dbd-jdbc</artifactId>
+	<version>0.71-SNAPSHOT</version>
+	<name>DBD-JDBC</name>
+	<description>This module allows you to use DBI to access a JDBC driver from Perl and is implemented in a fashion similar to that of DBD::Proxy</description>
+	<packaging>pom</packaging>
+	<modules>
+		<module>server</module>
+	</modules>
+	<url>https://github.com/vizdom/DBD-JDBC</url>
+
+</project>
