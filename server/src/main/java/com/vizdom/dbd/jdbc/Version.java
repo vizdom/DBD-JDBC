@@ -20,12 +20,34 @@
 
 package com.vizdom.dbd.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Contains the version number of the DBD::JDBC module. The build
  * process keeps this in sync with the Perl side.
  */
 public class Version
 {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(Version.class);
+	
+	static {
+		InputStream is = Version.class.getResourceAsStream("/dbd-jdbc-server.properties");
+		Properties p = new Properties();
+		try {
+			p.load(is);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		version = p.getProperty("application.version");
+	}
     /** The version string. */
-    public static final String version = "@version@";
+    public static final String version;
+    
+    
 }
