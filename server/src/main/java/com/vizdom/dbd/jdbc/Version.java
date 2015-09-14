@@ -42,7 +42,7 @@ public class Version
 		try {
 			p.load(is);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("Problem getting version!", e);
 		}
 		version = p.getProperty("application.version");
 	}
