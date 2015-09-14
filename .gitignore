@@ -10,3 +10,7 @@ server/build/
 server/dist/
 Version.java
 /target
+target
+.classpath
+.project
+.wtpmodules
