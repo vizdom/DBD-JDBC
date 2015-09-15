@@ -2,23 +2,18 @@
 
 <project name="dbd-jdbc" default="dist" basedir=".">
 
-  <property name="client.dir" value="DBD-JDBC"/>
-  <property name="server.dir" value="server"/>
-  <property name="dist.dir" value="dist"/>
-  <property file="${server.dir}/dbd-jdbc.properties"/>
+  <property name="dist.dir" value="../dist"/>
+  <property name="test.dir" value="test"/>
 
   <target name="clean">
     <makefile-target target="clean"/>
-    <ant antfile="build.xml" dir="${server.dir}" target="clean"/>
   </target>
 
   <target name="dist" depends="clean">
     <antcall target="check-versions"/>
-    <ant antfile="build.xml" dir="${server.dir}" target="test"/>
-    <ant antfile="build.xml" dir="${server.dir}" target="dist"/>
-    <mkdir dir="${client.dir}/server"/>
-    <copy todir="${client.dir}/server">
-      <fileset dir="${server.dir}/dist"/>
+    <mkdir dir="${test.dir}/server"/>
+    <copy todir="${test.dir}/server">
+      <fileset dir="../dist" includes="*.jar"/>
     </copy>
     <make-makefile/>
     <makefile-target target="test"/>
@@ -27,10 +22,14 @@
 
   <target name="check-versions">
     <exec executable="perl" outputproperty="dbd-jdbc">
-      <arg line='-I${client.dir}/lib -e "use DBD::JDBC; print $DBD::JDBC::VERSION;"'/>
+      <arg line='-Ilib -e "use DBD::JDBC; print $DBD::JDBC::VERSION;"'/>
     </exec>
     <exec executable="perl" outputproperty="bundle-dbd-jdbc">
-      <arg line='-I${client.dir}/lib -e "use Bundle::DBD::JDBC; print $Bundle::DBD::JDBC::VERSION;"'/>
+      <arg line='-Ilib -e "use Bundle::DBD::JDBC; print $Bundle::DBD::JDBC::VERSION;"'/>
+    </exec>
+    <exec executable="perl" outputproperty="dbd.jdbc.version">
+        <arg line="-MXML::Simple" />
+        <arg line="-e &apos;$v = XMLin(&quot;../pom.xml&quot;)->{version}; $v =~ s/-.*//g; print $v&apos;"/>
     </exec>
 
     <echo>
@@ -53,7 +52,7 @@
 
   <macrodef name="make-makefile">
     <sequential>
-      <exec executable="perl" dir="${client.dir}">
+      <exec executable="perl">
         <arg line="Makefile.PL"/>
       </exec>
     </sequential>
@@ -62,7 +61,7 @@
   <macrodef name="makefile-target">
     <attribute name="target" default=""/>
     <sequential>
-      <exec executable="make" dir="${client.dir}">
+      <exec executable="make">
         <arg line="@{target}"/>
       </exec>
     </sequential>

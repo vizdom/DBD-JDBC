@@ -12,55 +12,72 @@
 		<relativePath>..</relativePath>
 	</parent>
 
+	<dependencies>
+		<dependency>
+			<groupId>com.vizdom</groupId>
+			<artifactId>dbd-jdbc-server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+	</dependencies>
+
 	<build>
 		<plugins>
+			<!-- clean additional to Makefile.PL -->
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.4.0</version>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>2.6.1</version>
+				<configuration>
+					<filesets>
+						<fileset>
+							<directory>dist</directory>
+							<directory>target</directory>
+							<directory>blib</directory>
+						</fileset>
+						<fileset>
+							<directory>/</directory>
+							<includes>
+								<include>Makefile.old</include>
+								<include>Makefile</include>
+								<include>Makefile.PL</include>
+								<include>MYMETA.json</include>
+								<include>MYMETA.yml</include>
+							</includes>
+						</fileset>
+					</filesets>
+				</configuration>
+			</plugin>
+
+			<!-- this disables packaging by binding it to a non-existend phase. -->
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>makefile</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>exec</goal>
-						</goals>
+						<id>default-jar</id>
+						<phase>never</phase>
 						<configuration>
-							<executable>perl</executable>
-							<arguments>
-                                <argument>-W</argument>
-								<argument>${basedir}/Makefile.PL</argument>
-							</arguments>
+							<finalName>unwanted</finalName>
+							<classifier>unwanted</classifier>
 						</configuration>
 					</execution>
-					
+				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
 					<execution>
-                        <id>make-test</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>make</executable>
-                            <arguments>
-                                <argument>test</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    
-                    <execution>
-                        <id>make-dist</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>make</executable>
-                            <arguments>
-                                <argument>dist</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
+						<phase>compile</phase>
+						<configuration>
+							<target>
+								<ant antfile="build.xml" />
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

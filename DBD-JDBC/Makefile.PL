@@ -24,7 +24,7 @@ WriteMakefile(
         'Convert::BER' => 1.31,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES => 'server' },
+    clean => { FILES => 'test' },
 );
 
 
@@ -35,11 +35,11 @@ sub libscan {
     ($path =~ m/\~$/) ? undef : $path;
 }
 sub test {
-    my @cp = ("server/dbd_jdbc.jar",
-              "server",
-              "t/hsqldb/hsqldb-1.8.0.2.jar",
+    my @cp = grep {-f} <test/server/*.jar>;
+    
+    push(@cp, ("t/hsqldb/hsqldb-1.8.0.2.jar",
               "t/hsqldb/log4j-1.2.13.jar",
-              "\$(CLASSPATH)");
+              "\$(CLASSPATH)"));
     my $inherited = shift->SUPER::test(@_);
     if ($^O eq 'MSWin32') {
         my $cp = join ';', @cp; 
