@@ -33,15 +33,17 @@
 							<directory>dist</directory>
 							<directory>target</directory>
 							<directory>blib</directory>
+							<directory>test</directory>
 						</fileset>
 						<fileset>
-							<directory>/</directory>
+							<directory>${basedir}</directory>
 							<includes>
 								<include>Makefile.old</include>
 								<include>Makefile</include>
-								<include>Makefile.PL</include>
 								<include>MYMETA.json</include>
 								<include>MYMETA.yml</include>
+								<include>pm_to_blib</include>
+								<include>*.tar.gz</include>
 							</includes>
 						</fileset>
 					</filesets>
@@ -63,6 +65,7 @@
 				</executions>
 			</plugin>
 
+            <!-- keep ant buildfile for now. -->
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
 				<version>1.8</version>
@@ -73,6 +76,7 @@
 							<target>
 								<ant antfile="build.xml" />
 							</target>
+							<failOnError>true</failOnError>
 						</configuration>
 						<goals>
 							<goal>run</goal>

@@ -13,7 +13,7 @@
     <antcall target="check-versions"/>
     <mkdir dir="${test.dir}/server"/>
     <copy todir="${test.dir}/server">
-      <fileset dir="../dist" includes="*.jar"/>
+      <fileset dir="../server/target" includes="*.jar"/>
     </copy>
     <make-makefile/>
     <makefile-target target="test"/>
