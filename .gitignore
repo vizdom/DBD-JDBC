@@ -14,3 +14,10 @@ target
 .classpath
 .project
 .wtpmodules
+DBD-JDBC/blib
+DBD-JDBC/Makefile
+DBD-JDBC/Makefile.old
+DBD-JDBC/MYMETA.json
+DBD-JDBC/MYMETA.yml
+DBD-JDBC/pm_to_blib
+DBD-JDBC/DBD-JDBC-*.tar.gz

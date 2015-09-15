@@ -1,0 +1,69 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>dbd-jdbc-perlmodule</artifactId>
+	<name>DBD-JDBC Perl module</name>
+
+	<parent>
+		<groupId>com.vizdom</groupId>
+		<artifactId>dbd-jdbc</artifactId>
+		<version>0.71-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.4.0</version>
+				<executions>
+					<execution>
+						<id>makefile</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>perl</executable>
+							<arguments>
+                                <argument>-W</argument>
+								<argument>${basedir}/Makefile.PL</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					
+					<execution>
+                        <id>make-test</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>make</executable>
+                            <arguments>
+                                <argument>test</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    
+                    <execution>
+                        <id>make-dist</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>make</executable>
+                            <arguments>
+                                <argument>dist</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

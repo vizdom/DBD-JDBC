@@ -9,6 +9,7 @@
 	<packaging>pom</packaging>
 	<modules>
 		<module>server</module>
+		<module>DBD-JDBC</module>
 	</modules>
 	<url>https://github.com/vizdom/DBD-JDBC</url>
 
