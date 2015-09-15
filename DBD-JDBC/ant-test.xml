@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="dbd-jdbc" default="test" basedir=".">
+
+  <target name="test">
+    <sequential>
+      <exec executable="make" >
+        <arg line="test"/>
+      </exec>
+    </sequential>
+  	
+  </target>
+
+</project>

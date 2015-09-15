@@ -2,69 +2,12 @@
 
 <project name="dbd-jdbc" default="dist" basedir=".">
 
-  <property name="dist.dir" value="../dist"/>
-  <property name="test.dir" value="test"/>
-
-  <target name="clean">
-    <makefile-target target="clean"/>
+  <target name="dist">
+	<sequential>
+	      <exec executable="make">
+	        <arg line="dist"/>
+	      </exec>
+	</sequential>
   </target>
-
-  <target name="dist" depends="clean">
-    <antcall target="check-versions"/>
-    <mkdir dir="${test.dir}/server"/>
-    <copy todir="${test.dir}/server">
-      <fileset dir="../server/target" includes="*.jar"/>
-    </copy>
-    <make-makefile/>
-    <makefile-target target="test"/>
-    <makefile-target target="dist"/>
-  </target>
-
-  <target name="check-versions">
-    <exec executable="perl" outputproperty="dbd-jdbc">
-      <arg line='-Ilib -e "use DBD::JDBC; print $DBD::JDBC::VERSION;"'/>
-    </exec>
-    <exec executable="perl" outputproperty="bundle-dbd-jdbc">
-      <arg line='-Ilib -e "use Bundle::DBD::JDBC; print $Bundle::DBD::JDBC::VERSION;"'/>
-    </exec>
-    <exec executable="perl" outputproperty="dbd.jdbc.version">
-        <arg line="-MXML::Simple" />
-        <arg line="-e &apos;$v = XMLin(&quot;../pom.xml&quot;)->{version}; $v =~ s/-.*//g; print $v&apos;"/>
-    </exec>
-
-    <echo>
-      DBD::JDBC:         ${dbd-jdbc}
-      Bundle::DBD::JDBC: ${bundle-dbd-jdbc}
-      Server:            ${dbd.jdbc.version}
-    </echo>
-
-    <fail message="Versions out of sync">
-      <condition>
-        <not>
-          <and>
-            <equals arg1="${dbd-jdbc}" arg2="${bundle-dbd-jdbc}"/>
-            <equals arg1="${dbd-jdbc}" arg2="${dbd.jdbc.version}"/>
-          </and>
-        </not>
-      </condition>
-    </fail>
-  </target>
-
-  <macrodef name="make-makefile">
-    <sequential>
-      <exec executable="perl">
-        <arg line="Makefile.PL"/>
-      </exec>
-    </sequential>
-  </macrodef>
-
-  <macrodef name="makefile-target">
-    <attribute name="target" default=""/>
-    <sequential>
-      <exec executable="make">
-        <arg line="@{target}"/>
-      </exec>
-    </sequential>
-  </macrodef>
 
 </project>

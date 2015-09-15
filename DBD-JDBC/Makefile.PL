@@ -35,11 +35,9 @@ sub libscan {
     ($path =~ m/\~$/) ? undef : $path;
 }
 sub test {
-    my @cp = grep {-f} <test/server/*.jar>;
-    
-    push(@cp, ("t/hsqldb/hsqldb-1.8.0.2.jar",
-              "t/hsqldb/log4j-1.2.13.jar",
-              "\$(CLASSPATH)"));
+    my @cp = grep {-f} <target/lib/*>;
+    push(@cp, "\$(CLASSPATH)");
+
     my $inherited = shift->SUPER::test(@_);
     if ($^O eq 'MSWin32') {
         my $cp = join ';', @cp; 

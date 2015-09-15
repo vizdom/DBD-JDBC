@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="dbd-jdbc" default="makefile" basedir=".">
+
+	<target name="makefile">
+		<antcall target="check-versions" />
+
+		<sequential>
+			<exec executable="perl">
+				<arg line="Makefile.PL" />
+			</exec>
+		</sequential>
+	</target>
+	<target name="check-versions">
+		<exec executable="perl" outputproperty="dbd-jdbc">
+			<arg line='-Ilib -e "use DBD::JDBC; print $DBD::JDBC::VERSION;"' />
+		</exec>
+		<exec executable="perl" outputproperty="bundle-dbd-jdbc">
+			<arg
+				line='-Ilib -e "use Bundle::DBD::JDBC; print $Bundle::DBD::JDBC::VERSION;"' />
+		</exec>
+		<exec executable="perl" outputproperty="dbd.jdbc.version">
+			<arg line="-MXML::Simple" />
+			<arg
+				line="-e &apos;$v = XMLin(&quot;../pom.xml&quot;)->{version}; $v =~ s/-.*//g; print $v&apos;" />
+		</exec>
+
+		<echo>
+			DBD::JDBC: ${dbd-jdbc}
+			Bundle::DBD::JDBC: ${bundle-dbd-jdbc}
+			Server: ${dbd.jdbc.version}
+		</echo>
+
+		<fail message="Versions out of sync">
+			<condition>
+				<not>
+					<and>
+						<equals arg1="${dbd-jdbc}" arg2="${bundle-dbd-jdbc}" />
+						<equals arg1="${dbd-jdbc}" arg2="${dbd.jdbc.version}" />
+					</and>
+				</not>
+			</condition>
+		</fail>
+	</target>
+</project>
