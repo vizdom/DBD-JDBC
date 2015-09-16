@@ -5,7 +5,7 @@ addons:
             - cpanminus
             - perl
 before_install:
-    - cpanm --cpanfile DBD-JDBC/.cpanfile --installdeps .
+    - cd DBD-JDBC && cpanm --installdeps .
 jdk:
     - oraclejdk8
     - oraclejdk7
