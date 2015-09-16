@@ -2,7 +2,7 @@ language: java
 before_install:
     - sudo apt-get update 
     - sudo apt-get install cpanminus perl
-    - cpanm --installdeps Convert::BER XML::Simple DBI
+    - cpanm --cpanfile DBD-JDBC/.cpanfile --installdeps .
 jdk:
     - oraclejdk8
     - oraclejdk7
