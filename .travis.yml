@@ -1,6 +1,6 @@
 language: java
 before_install:
-    - ./setup.sh
+    - cpanm --installdeps --notests DBD-JDBC
 jdk:
     - oraclejdk8
     - oraclejdk7
