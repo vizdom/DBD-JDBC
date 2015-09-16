@@ -21,3 +21,4 @@ DBD-JDBC/MYMETA.json
 DBD-JDBC/MYMETA.yml
 DBD-JDBC/pm_to_blib
 DBD-JDBC/DBD-JDBC-*.tar.gz
+DBD-JDBC/t/hsqldb/testdb.properties
