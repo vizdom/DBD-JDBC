@@ -69,7 +69,7 @@
 				<artifactId>maven-install-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>install</id>
+						<id>default-install</id>
 						<phase>never</phase>
 					</execution>
 				</executions>
