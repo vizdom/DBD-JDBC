@@ -1,9 +1,8 @@
 language: java
-before_script:
-    - sh ./setup.sh
+before_install:
+    - ./setup.sh
 jdk:
     - oraclejdk8
     - oraclejdk7
-    - openjdk8
     - openjdk7
     - openjdk6
