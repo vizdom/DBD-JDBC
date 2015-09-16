@@ -64,6 +64,16 @@
 				</configuration>
 			</plugin>
 
+			<!-- this disables installing by binding it to a non-existend phase. -->
+			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>install</id>
+						<phase>never</phase>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- this disables packaging by binding it to a non-existend phase. -->
 			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
