@@ -1,11 +1,13 @@
 language: java
+env:
+    - PERL_CPANM_OPT="--local-lib=~/perl5" PERL5LIB="~/perl5:~/perl5/lib/perl5:$PERL5LIB"
 addons:
     apt:
         packages:
             - cpanminus
             - perl
 before_install:
-    - $(cd DBD-JDBC && cpanm --installdeps .)
+    - $(cd DBD-JDBC && cpanm -v --installdeps .)
 jdk:
     - oraclejdk8
     - oraclejdk7
