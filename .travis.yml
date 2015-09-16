@@ -1,6 +1,6 @@
 language: java
 env:
-    - PERL_CPANM_OPT="--local-lib=~/perl5" PERL5LIB="~/perl5:~/perl5/lib:~/perl5/lib/perl5:$PERL5LIB"
+    - PERL_CPANM_OPT="--local-lib=$HOME/perl5" PERL5LIB="$HOME/perl5:$HOME/perl5/lib:$HOME/perl5/lib/perl5:$PERL5LIB"
 addons:
     apt:
         packages:
