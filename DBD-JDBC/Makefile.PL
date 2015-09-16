@@ -15,14 +15,15 @@ WriteMakefile(
     MIN_PERL_VERSION => 5.006,
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
-        'XML::Simple' => 0,
     },
     BUILD_REQUIRES => {
         'Test::More' => 0,
+        'XML::Simple' => 0,
     },
     PREREQ_PM => {
         'DBI'     => '1.48',
         'Convert::BER' => 1.31,
+        'XML::Simple' => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'test' },
