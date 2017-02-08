@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2002,2004-2006 Vizdom Software, Inc. All Rights Reserved.
- * 
- *  This program is free software; you can redistribute it and/or 
- *  modify it under the same terms as the Perl Kit, namely, under 
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the same terms as the Perl Kit, namely, under
  *  the terms of either:
  *
  *      a) the GNU General Public License as published by the Free
- *      Software Foundation; either version 1 of the License, or 
+ *      Software Foundation; either version 1 of the License, or
  *      (at your option) any later version, or
  *
  *      b) the "Artistic License" that comes with the Perl Kit.
@@ -14,8 +14,8 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
- *  the GNU General Public License or the Artistic License for more 
- *  details. 
+ *  the GNU General Public License or the Artistic License for more
+ *  details.
  */
 
 package com.vizdom.dbd.jdbc;
@@ -38,13 +38,13 @@ import org.apache.log4j.NDC;
 
 
 /**
- * This class implements a single DBD server connection. It's 
+ * This class implements a single DBD server connection. It's
  * intended to be run as a single thread started by a
  * connection-accepting server.
  *
  * @version $Revision: 1.42 $
  */
-/* The handleMessage methods may throw only SQLExceptions and 
+/* The handleMessage methods may throw only SQLExceptions and
  * RuntimeExceptions, the first if they can recover, the second
  * if the connection should exit.
  */
@@ -57,7 +57,7 @@ public class Connection implements Runnable
     private static final Integer sDbiNoNulls = new Integer(0);
 
     /** The DBI constant for nullable columns. */
-    private static final Integer sDbiNullable = new Integer(1);   
+    private static final Integer sDbiNullable = new Integer(1);
 
     /** The DBI constant for nullable-unknown columns. */
     private static final Integer sDbiNullableUnknown = new Integer(2);
@@ -72,8 +72,8 @@ public class Connection implements Runnable
     private Socket mSocket;
 
     /**
-     * The client socket's input stream. This is a BufferedInputStream 
-     * in order to avoid a problem I had with <code>available</code> 
+     * The client socket's input stream. This is a BufferedInputStream
+     * in order to avoid a problem I had with <code>available</code>
      * being > 0 but <code>read</code> returning -1.
      */
     private BufferedInputStream mIn;
@@ -87,7 +87,7 @@ public class Connection implements Runnable
     /** The JDBC Connection. */
     private java.sql.Connection mConn;
 
-    /** 
+    /**
      * True if this Connection was constructed with a pre-existing
      * JDBC connection.
      */
@@ -97,7 +97,7 @@ public class Connection implements Runnable
     private Hashtable<Integer, StatementHolder> mStatementTable
         = new Hashtable<Integer, StatementHolder>();
 
-    /** 
+    /**
      * The count of Statements created. This value is used as the
      * key into the statement table for each newly-created Statement.
      */
@@ -115,12 +115,12 @@ public class Connection implements Runnable
 
     /** Other connection properties. */
     Properties mProperties;
-        
+
     /** Flag indicating whether generated keys are supported by the driver. */
-    private boolean mSupportsGetGeneratedKeys; 
+    private boolean mSupportsGetGeneratedKeys;
 
     /** The cached generated keys. */
-    private GeneratedKey[] mGeneratedKeys; 
+    private GeneratedKey[] mGeneratedKeys;
 
     /**
      * Constructor - initializes fields.
@@ -153,7 +153,7 @@ public class Connection implements Runnable
      * @exception IOException if an error occurs getting the socket's
      *      input or output streams
      */
-    Connection(Socket aClient, BerDbdModule aBerModule, 
+    Connection(Socket aClient, BerDbdModule aBerModule,
         java.sql.Connection aJdbcConnection) throws IOException
     {
         this(aClient, aBerModule);
@@ -170,7 +170,7 @@ public class Connection implements Runnable
     {
         mThreadId = "[" + Thread.currentThread().getName() + "]";
 
-        NDC.push(mThreadId); 
+        NDC.push(mThreadId);
 
         BerObject request;
         BerObject response = null;
@@ -185,7 +185,7 @@ public class Connection implements Runnable
                 /* Re-implement this, treating Connection as a Visitor
                  * on the fooRequest classes. For example,
                  * this switch would become request.handleMessage(this)
-                 * and each fooRequest would have a 
+                 * and each fooRequest would have a
                  * handleMessage(Connection conn) {conn.handleMessage(this)}
                  */
                 request = mBerModule.readFrom(mIn);
@@ -194,7 +194,7 @@ public class Connection implements Runnable
                 if (gLog.isDebugEnabled())
                     gLog.debug("Request: " + request);
 
-                BerIdentifier id = request.getIdentifier(); 
+                BerIdentifier id = request.getIdentifier();
                 if (id.getTagClass() != BerTypes.APPLICATION)
                     throw new FatalException("Unknown request received " + id);
 
@@ -203,9 +203,9 @@ public class Connection implements Runnable
                 {
                 case BerDbdModule.gDISCONNECT_REQUEST:
                     connected = false;
-                    response = handleRequest((DisconnectRequest) request); 
+                    response = handleRequest((DisconnectRequest) request);
                     break;
-                
+
                 case BerDbdModule.gCONNECT_REQUEST:
                     try
                     {
@@ -221,70 +221,70 @@ public class Connection implements Runnable
                 case BerDbdModule.gPING_REQUEST:
                     response = handleRequest((PingRequest) request);
                     break;
-                case BerDbdModule.gCOMMIT_REQUEST: 
-                    response = handleRequest((CommitRequest) request); 
+                case BerDbdModule.gCOMMIT_REQUEST:
+                    response = handleRequest((CommitRequest) request);
                     break;
-                case BerDbdModule.gROLLBACK_REQUEST: 
-                    response = handleRequest((RollbackRequest) request); 
+                case BerDbdModule.gROLLBACK_REQUEST:
+                    response = handleRequest((RollbackRequest) request);
                     break;
-                case BerDbdModule.gPREPARE_REQUEST: 
-                    response = handleRequest((PrepareRequest) request); 
+                case BerDbdModule.gPREPARE_REQUEST:
+                    response = handleRequest((PrepareRequest) request);
                     break;
-                case BerDbdModule.gEXECUTE_REQUEST: 
-                    response = handleRequest((ExecuteRequest) request); 
+                case BerDbdModule.gEXECUTE_REQUEST:
+                    response = handleRequest((ExecuteRequest) request);
                     break;
-                case BerDbdModule.gFETCH_REQUEST: 
-                    response = handleRequest((FetchRequest) request); 
+                case BerDbdModule.gFETCH_REQUEST:
+                    response = handleRequest((FetchRequest) request);
                     break;
-                case BerDbdModule.gGET_CONNECTION_PROPERTY_REQUEST: 
+                case BerDbdModule.gGET_CONNECTION_PROPERTY_REQUEST:
                     response = handleRequest(
-                        (GetConnectionPropertyRequest) request); 
+                        (GetConnectionPropertyRequest) request);
                     break;
-                case BerDbdModule.gSET_CONNECTION_PROPERTY_REQUEST: 
+                case BerDbdModule.gSET_CONNECTION_PROPERTY_REQUEST:
                     response = handleRequest(
-                        (SetConnectionPropertyRequest) request); 
+                        (SetConnectionPropertyRequest) request);
                     break;
-                case BerDbdModule.gGET_STATEMENT_PROPERTY_REQUEST: 
+                case BerDbdModule.gGET_STATEMENT_PROPERTY_REQUEST:
                     response = handleRequest(
-                        (GetStatementPropertyRequest) request); 
+                        (GetStatementPropertyRequest) request);
                     break;
-                case BerDbdModule.gSET_STATEMENT_PROPERTY_REQUEST: 
+                case BerDbdModule.gSET_STATEMENT_PROPERTY_REQUEST:
                     response = handleRequest(
-                        (SetStatementPropertyRequest) request); 
+                        (SetStatementPropertyRequest) request);
                     break;
-                case BerDbdModule.gSTATEMENT_FINISH_REQUEST: 
+                case BerDbdModule.gSTATEMENT_FINISH_REQUEST:
                     response = handleRequest(
-                        (StatementFinishRequest) request); 
+                        (StatementFinishRequest) request);
                     break;
-                case BerDbdModule.gSTATEMENT_DESTROY_REQUEST: 
+                case BerDbdModule.gSTATEMENT_DESTROY_REQUEST:
                     response = handleRequest(
-                        (StatementDestroyRequest) request); 
+                        (StatementDestroyRequest) request);
                     break;
 
-                case BerDbdModule.gCONNECTION_FUNC_REQUEST: 
+                case BerDbdModule.gCONNECTION_FUNC_REQUEST:
                     response = handleRequest(
-                        (ConnectionFuncRequest) request); 
+                        (ConnectionFuncRequest) request);
                     break;
 
-                case BerDbdModule.gSTATEMENT_FUNC_REQUEST: 
+                case BerDbdModule.gSTATEMENT_FUNC_REQUEST:
                     response = handleRequest(
-                        (StatementFuncRequest) request); 
+                        (StatementFuncRequest) request);
                     break;
 
                 case BerDbdModule.gGET_GENERATED_KEYS_REQUEST:
                     response = handleRequest(
                         (GetGeneratedKeysRequest) request);
                     break;
-                    
-                default: 
+
+                default:
                     throw new DbdException(DbdException.gUNKNOWN_REQUEST,
                         new String[] { String.valueOf(tagNumber) });
                 }
-                
+
                 if (response != null)
                 {
                     response.writeTo(mOut);
-                    mOut.flush(); 
+                    mOut.flush();
                     if (gLog.isDebugEnabled())
                         gLog.debug("Response: " + response);
                     response = null;
@@ -307,7 +307,7 @@ public class Connection implements Runnable
             catch (Throwable throwable)
             {
                 connected = false;
-                gLog.warn("Rollback due to fatal error"); 
+                gLog.warn("Rollback due to fatal error");
                 mRollback();
                 gLog.fatal("Error; ending connection", throwable);
                 try
@@ -323,14 +323,14 @@ public class Connection implements Runnable
             }
         }
 
-        mDoDisconnect(true); 
+        mDoDisconnect(true);
         try { mOut.close(); } catch (IOException e) { }
-        mOut = null; 
+        mOut = null;
         try { mIn.close(); } catch (IOException e) { }
-        mIn = null; 
+        mIn = null;
         try { mSocket.close(); } catch (IOException e) { }
         mSocket = null;
-        
+
         gLog.info("Client done");
         NDC.pop();
     }
@@ -351,14 +351,14 @@ public class Connection implements Runnable
         }
         catch (SQLException e)
         {
-            gLog.warn("SQLException during rollback", e); 
+            gLog.warn("SQLException during rollback", e);
         }
     }
 
     /**
-     * Sets up the connection's character encoding, if the client 
+     * Sets up the connection's character encoding, if the client
      * requested a specific encoding. If this Connection was not
-     * constructed with a pre-existing JDBC connection, 
+     * constructed with a pre-existing JDBC connection,
      * establishes a JDBC connection.
      *
      * @param aRequest the request received from the client
@@ -366,7 +366,7 @@ public class Connection implements Runnable
      * @exception SQLException if an error occurs establishing the
      *      JDBC connection
      */
-     /* When we read the ConnectRequest, we don't yet know the client's 
+     /* When we read the ConnectRequest, we don't yet know the client's
       * character set. Therefore, the client is responsible for sending
       * the character set as an ASCII string. All other strings are
       * expected to be sent encoded in the client's character set.
@@ -378,11 +378,11 @@ public class Connection implements Runnable
       * BerModule is valid, based on its use here, and proceeds to
       * ignore UnsupportedEncodingExceptions.
       */
-    BerObject handleRequest(ConnectRequest aRequest) 
+    BerObject handleRequest(ConnectRequest aRequest)
         throws SQLException
     {
         // The property is always sent, but it might be "".
-        String charset = null; 
+        String charset = null;
         try
         {
             charset = aRequest.getCharacterEncoding();
@@ -391,11 +391,11 @@ public class Connection implements Runnable
                 if (gLog.isDebugEnabled())
                     gLog.debug("Setting character encoding to " + charset);
                 // Trigger UnsupportedEncodingException as soon as possible.
-                com.vizdom.util.CharacterEncoder.toByteArray("test string", 
+                com.vizdom.util.CharacterEncoder.toByteArray("test string",
                     charset);
                 mBerModule.setCharacterEncoding(charset);
             }
-            
+
 
             if (!preExistingConnection)
             {
@@ -419,14 +419,15 @@ public class Connection implements Runnable
                 else
                     mConn = DriverManager.getConnection(mUrl, mUser, mPassword);
 
-                DatabaseMetaData dbmd = mConn.getMetaData(); 
-                gLog.debug("Created database connection to " + 
-                    dbmd.getDatabaseProductName() + " v" + 
-                    dbmd.getDatabaseProductVersion()); 
-                mSupportsGetGeneratedKeys = dbmd.supportsGetGeneratedKeys(); 
+                DatabaseMetaData dbmd = mConn.getMetaData();
+                gLog.debug("Created database connection to " +
+                    dbmd.getDatabaseProductName() + " v" +
+                    dbmd.getDatabaseProductVersion());
+                //mSupportsGetGeneratedKeys = dbmd.supportsGetGeneratedKeys();
+                mSupportsGetGeneratedKeys = false;
                 if (gLog.isDebugEnabled())
                 {
-                    gLog.debug("Driver supports getGeneratedKeys? " + 
+                    gLog.debug("Driver supports getGeneratedKeys? " +
                         mSupportsGetGeneratedKeys);
                 }
             }
@@ -458,7 +459,7 @@ public class Connection implements Runnable
 
     /**
      * Closes the current set of Statements and the JDBC connection.
-     * Does nothing if this Connection was constructed with a 
+     * Does nothing if this Connection was constructed with a
      * pre-existing JDBC connection.
      *
      * @param aRequest the request received from the client
@@ -467,15 +468,15 @@ public class Connection implements Runnable
      *      Connection
      */
     /* StatementHolder.close doesn't throw exceptions, so we should always
-     * get the chance to close the connection. 
+     * get the chance to close the connection.
      */
     BerObject handleRequest(DisconnectRequest aRequest)
         throws SQLException
     {
-        mDoDisconnect(!preExistingConnection); 
+        mDoDisconnect(!preExistingConnection);
         return new DisconnectResponse();
     }
-    
+
     /**
      * Closes statements and the JDBC connection.
      *
@@ -492,7 +493,7 @@ public class Connection implements Runnable
                 ((StatementHolder) elements.nextElement()).close();
             if (gLog.isDebugEnabled())
             {
-                gLog.debug("Closed " + mStatementTable.size() + 
+                gLog.debug("Closed " + mStatementTable.size() +
                     " Statements on disconnect");
             }
         }
@@ -500,22 +501,22 @@ public class Connection implements Runnable
         // handles around for destroy requests in case we're in a
         // reconnect situation. Destroy shouldn't throw
         // exceptions back to the Perl client even if the handle
-        // has already been closed.  
+        // has already been closed.
 
         // mStatementTable.clear();
         if (mConn != null && shouldCloseConnection)
         {
             try
-            { 
-                gLog.debug("Closing database connection"); 
+            {
+                gLog.debug("Closing database connection");
                 mConn.close();
-            } 
+            }
             catch (Throwable t)
             {
                 gLog.warn("Error closing connection: " + t.getMessage());
             }
         }
-        mConn = null; 
+        mConn = null;
     }
 
     /**
@@ -544,9 +545,9 @@ public class Connection implements Runnable
         mConn.commit();
         return new CommitResponse();
     }
-    
+
     /**
-     * Calls <code>Connection.rollback</code>. 
+     * Calls <code>Connection.rollback</code>.
      *
      * @param aRequest the request received from the client
      * @return a BER response object
@@ -558,7 +559,7 @@ public class Connection implements Runnable
         mConn.rollback();
         return new RollbackResponse();
     }
-    
+
     /**
      * Prepares a statement for later execution.
      *
@@ -567,7 +568,7 @@ public class Connection implements Runnable
      * @exception SQLException if the statement preparation fails
      */
     /* We use PreparedStatements here since we don't know if there are
-     * any substitutable parameters. 
+     * any substitutable parameters.
      */
     BerObject handleRequest(PrepareRequest aRequest)
         throws SQLException
@@ -577,13 +578,13 @@ public class Connection implements Runnable
         {
             if ("name".equals(aRequest.getKeyType()))
             {
-                stmt = mConn.prepareStatement(aRequest.getStatement(), 
-                    aRequest.getColumnNames()); 
+                stmt = mConn.prepareStatement(aRequest.getStatement(),
+                    aRequest.getColumnNames());
             }
             else if ("index".equals(aRequest.getKeyType()))
             {
                 stmt = mConn.prepareStatement(aRequest.getStatement(),
-                    aRequest.getColumnIndexes()); 
+                    aRequest.getColumnIndexes());
             }
             else
             {
@@ -594,17 +595,17 @@ public class Connection implements Runnable
         else
             stmt = mConn.prepareStatement(aRequest.getStatement());
         int stmtHandle = mNextHandle++;
-        mStatementTable.put(new Integer(stmtHandle), 
+        mStatementTable.put(new Integer(stmtHandle),
             new StatementHolder(stmt));
         if (gLog.isTraceEnabled())
             gLog.trace("Assigned statement handle " + stmtHandle);
         return new PrepareResponse(stmtHandle);
     }
-    
+
     /**
-     * Sets statement parameters and executes a previously prepared 
-     * statement. This method will try to convert the bytes sent to 
-     * the type corresponding to the provided type hint and call the 
+     * Sets statement parameters and executes a previously prepared
+     * statement. This method will try to convert the bytes sent to
+     * the type corresponding to the provided type hint and call the
      * appropriate setXXX method. Type conversions are taken from
      * Table 21.2, p. 394, in JDBC Data Access with Java.
      *
@@ -615,9 +616,9 @@ public class Connection implements Runnable
      */
     /* The request will contain the statement handle for the statement
      * to be executed and a list of parameters and parameter type hints.
-     * This method will throw an exception if one of the setXXX methods 
+     * This method will throw an exception if one of the setXXX methods
      * fails (or if a data conversion fails). We're playing some games
-     * to make sure that the parameter number is included in the 
+     * to make sure that the parameter number is included in the
      * error message, since we're setting all the parameters at once
      * and the user might not know otherwise which one failed.
      */
@@ -633,13 +634,13 @@ public class Connection implements Runnable
             gLog.debug("setting " + params.length + " parameters");
         for (int i = 0; i < params.length; i++)
         {
-            try 
+            try
             {
                 if (params[i].value == null)
                 {
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace("setting parameter " + (i + 1) + 
+                        gLog.trace("setting parameter " + (i + 1) +
                             "; value null; type " + params[i].type);
                     }
                     stmt.setNull(i + 1, params[i].type);
@@ -647,7 +648,7 @@ public class Connection implements Runnable
                 }
                 if (gLog.isTraceEnabled())
                     gLog.trace("setting parameter " + (i + 1) + "; value ");
-                switch (params[i].type) 
+                switch (params[i].type)
                 {
                 case Types.BINARY:
                 case Types.VARBINARY:
@@ -656,43 +657,43 @@ public class Connection implements Runnable
                     break;
                 case Types.TINYINT:
                 case Types.SMALLINT:
-                    stmt.setShort(i + 1, 
+                    stmt.setShort(i + 1,
                         Short.parseShort(params[i].value.toString()));
                     break;
                 case Types.INTEGER:
-                    stmt.setInt(i + 1, 
+                    stmt.setInt(i + 1,
                         Integer.parseInt(params[i].value.toString()));
                     break;
-                case Types.BIGINT: 
-                    stmt.setLong(i + 1, 
+                case Types.BIGINT:
+                    stmt.setLong(i + 1,
                         Long.parseLong(params[i].value.toString()));
                     break;
-                case Types.REAL: 
-                    stmt.setFloat(i + 1, 
+                case Types.REAL:
+                    stmt.setFloat(i + 1,
                         new Float(params[i].value.toString()).floatValue());
                     break;
-                case Types.FLOAT: 
-                case Types.DOUBLE: 
-                    stmt.setDouble(i + 1, 
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                    stmt.setDouble(i + 1,
                         new Double(params[i].value.toString()).doubleValue());
                     break;
-                case Types.DECIMAL: 
+                case Types.DECIMAL:
                 case Types.NUMERIC:
-                    stmt.setBigDecimal(i + 1, 
+                    stmt.setBigDecimal(i + 1,
                         new BigDecimal(params[i].value.toString()));
                     break;
                 case Types.BIT:   // Clients must send "0" or "1"
-                    stmt.setBoolean(i + 1, 
+                    stmt.setBoolean(i + 1,
                         params[i].value.toString().equals("1"));
                     break;
-                case Types.CHAR: 
+                case Types.CHAR:
                 case Types.VARCHAR:
                 case Types.LONGVARCHAR:  // Use a stream here?
                     stmt.setString(i + 1, params[i].value.toString());
                     break;
-                case Types.DATE:      
-                case Types.TIME:      
-                case Types.TIMESTAMP: 
+                case Types.DATE:
+                case Types.TIME:
+                case Types.TIMESTAMP:
                     // TODO: Documentation in the Changes file for DBI
                     // 1.41 indicates that if a type was
                     // explicitly supplied, we can assume the
@@ -701,8 +702,8 @@ public class Connection implements Runnable
                     // yyyy-MM-dd. This would let us create a
                     // Date and call setDate here.
 
-                case Types.OTHER: 
-                default: 
+                case Types.OTHER:
+                default:
                     stmt.setString(i + 1, params[i].value.toString());
                     break;
                 }
@@ -712,8 +713,8 @@ public class Connection implements Runnable
                 {
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace("(binary; length " + 
-                            params[i].value.toByteArray().length + 
+                        gLog.trace("(binary; length " +
+                            params[i].value.toByteArray().length +
                             "); type " + params[i].type);
                     }
                 }
@@ -721,7 +722,7 @@ public class Connection implements Runnable
                 {
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace(params[i].value.toString() + "; type " + 
+                        gLog.trace(params[i].value.toString() + "; type " +
                             params[i].type);
                     }
                 }
@@ -738,9 +739,9 @@ public class Connection implements Runnable
                     new String[] { String.valueOf(i + 1), se.toString() });
                 dbd.setNextException(se);
                 throw dbd;
-            }            
+            }
         }
-        
+
         ExecuteResponse resp;
         if (stmt.execute())
         {
@@ -750,7 +751,7 @@ public class Connection implements Runnable
             holder.setResultSet(rs);
             ResultSetMetaData rsmd = holder.getResultSetMetaData();
             int cols = rsmd.getColumnCount();
-            resp = 
+            resp =
                 new ExecuteResponse(
                 new ExecuteResultSetResponse(cols));
         }
@@ -763,14 +764,14 @@ public class Connection implements Runnable
             if (mSupportsGetGeneratedKeys)
             {
                 ResultSet rs = stmt.getGeneratedKeys();
-                ResultSetMetaData rsmd = rs.getMetaData(); 
+                ResultSetMetaData rsmd = rs.getMetaData();
                 if (rsmd.getColumnCount() > 0)
                 {
                     // We might not be able to jump to the last
                     // row, so we just have to read each row,
                     // letting the last row be the last value
                     // cached.
-                    mGeneratedKeys = new GeneratedKey[rsmd.getColumnCount()]; 
+                    mGeneratedKeys = new GeneratedKey[rsmd.getColumnCount()];
                     while (rs.next())
                     {
                         for (int i = 1; i <= rsmd.getColumnCount(); i++)
@@ -780,9 +781,9 @@ public class Connection implements Runnable
                                 rsmd.getSchemaName(i),
                                 rsmd.getTableName(i),
                                 rsmd.getColumnName(i),
-                                rs.getString(i)); 
+                                rs.getString(i));
                             if (gLog.isTraceEnabled())
-                                gLog.trace("Key: " + mGeneratedKeys[i - 1]); 
+                                gLog.trace("Key: " + mGeneratedKeys[i - 1]);
                         }
                     }
                 }
@@ -793,7 +794,7 @@ public class Connection implements Runnable
 
     /**
      * Fetches the next row of data from the ResultSet associated
-     * with a given Statement. Implements the DBI specification 
+     * with a given Statement. Implements the DBI specification
      * with regard to LongReadLen, LongTruncOk, and ChopBlanks.
      *
      * @param aRequest the request received from the client
@@ -803,10 +804,10 @@ public class Connection implements Runnable
      * @exception Exception if the statement has no result set, or the
      *      provided statement handle is invalid
      */
-     /* Code here relies on prepare (or some other earlier method) to 
+     /* Code here relies on prepare (or some other earlier method) to
       * set the LongReadLen, LongTruncOk, and ChopBlanks properties.
       *
-      * Some data types get special handling, but mostly we pass 
+      * Some data types get special handling, but mostly we pass
       * everything back as a string and let the client sort it out.
       */
     BerObject handleRequest(FetchRequest aRequest)
@@ -814,14 +815,14 @@ public class Connection implements Runnable
     {
         if (gLog.isTraceEnabled())
         {
-            gLog.trace("Fetching row from statement handle " + 
+            gLog.trace("Fetching row from statement handle " +
                 aRequest.getHandle());
         }
         StatementHolder holder = mGetStatementHolder(aRequest.getHandle());
         ResultSet rs = holder.getResultSet();
         if (rs == null)
             throw new DbdException(DbdException.gNO_RESULT_SET);
-        
+
         Object[] row = null;
         boolean hasData;
         if (hasData = rs.next())
@@ -829,13 +830,13 @@ public class Connection implements Runnable
             ResultSetMetaData rsmd = holder.getResultSetMetaData();
             int cols = rsmd.getColumnCount();
             row = new Object[cols];
-            int longReadLen = ((Integer) 
+            int longReadLen = ((Integer)
                 holder.getProperties().get("LongReadLen")).intValue();
-            boolean longTruncOk = ((Boolean) 
+            boolean longTruncOk = ((Boolean)
                 holder.getProperties().get("LongTruncOk")).booleanValue();
-            boolean chopBlanks = ((Boolean) 
+            boolean chopBlanks = ((Boolean)
                 holder.getProperties().get("ChopBlanks")).booleanValue();
-            boolean readAll = ((Boolean) 
+            boolean readAll = ((Boolean)
                 holder.getProperties().get("jdbc_longreadall")).booleanValue();
             for (int i = 0; i < cols; i++)
             {
@@ -844,7 +845,7 @@ public class Connection implements Runnable
                     int type = rsmd.getColumnType(i + 1);
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace("getting column " + (i + 1) + "/" + 
+                        gLog.trace("getting column " + (i + 1) + "/" +
                             rsmd.getColumnName(i + 1) + "; type " + type);
                     }
                     switch (type)
@@ -861,29 +862,29 @@ public class Connection implements Runnable
                         row[i] = rs.getBytes(i + 1);
                         break;
 
-                    case Types.LONGVARBINARY: 
+                    case Types.LONGVARBINARY:
                         if (longReadLen == 0)
                             row[i] = null;
                         else
                         {
-                            row[i] = mReadLong(i + 1, 
+                            row[i] = mReadLong(i + 1,
                                 rs.getBinaryStream(i + 1),
                                 longReadLen, longTruncOk, readAll);
                         }
                         break;
 
-                    case Types.BLOB: 
+                    case Types.BLOB:
                         if (longReadLen == 0)
                             row[i] = null;
                         else
                         {
-                            Blob blob = rs.getBlob(i + 1); 
+                            Blob blob = rs.getBlob(i + 1);
                             if (blob == null)
                                 row[i] = null;
                             else
                             {
-                                row[i] = mReadLong(i + 1, 
-                                    blob.getBinaryStream(), longReadLen, 
+                                row[i] = mReadLong(i + 1,
+                                    blob.getBinaryStream(), longReadLen,
                                     longTruncOk, readAll);
                             }
                         }
@@ -901,15 +902,15 @@ public class Connection implements Runnable
                             row[i] = null;
                         else
                         {
-                            char[] chars = mReadLong(i + 1, 
-                                rs.getCharacterStream(i + 1), longReadLen, 
+                            char[] chars = mReadLong(i + 1,
+                                rs.getCharacterStream(i + 1), longReadLen,
                                 longTruncOk, readAll);
-                            row[i] = (chars == null) ? 
-                                null : new String(chars); 
+                            row[i] = (chars == null) ?
+                                null : new String(chars);
                         }
                         break;
 
-                    case Types.CLOB: 
+                    case Types.CLOB:
                         if (longReadLen == 0)
                             row[i] = null;
                         else
@@ -919,10 +920,10 @@ public class Connection implements Runnable
                                 row[i] = null;
                             else
                             {
-                                char[] chars = mReadLong(i + 1, 
-                                    clob.getCharacterStream(), longReadLen, 
+                                char[] chars = mReadLong(i + 1,
+                                    clob.getCharacterStream(), longReadLen,
                                     longTruncOk, readAll);
-                                row[i] = (chars == null) ? 
+                                row[i] = (chars == null) ?
                                     null : new String(chars);
                             }
                         }
@@ -933,11 +934,11 @@ public class Connection implements Runnable
                         // may be updated later to get an Array
                         // object, build a string, and allow
                         // callers to specify a term separator.
-                    case Types.ARRAY: 
+                    case Types.ARRAY:
                         row[i] = rs.getString(i + 1);
                         break;
 
-                    case Types.CHAR: 
+                    case Types.CHAR:
                         if (chopBlanks)
                         {
                             row[i] = mChopBlanks(rs.getString(i + 1));
@@ -953,14 +954,14 @@ public class Connection implements Runnable
                 catch (IOException ioError)
                 {
                     throw new DbdException(DbdException.gFETCH_EXCEPTION,
-                        new String[] { String.valueOf(i + 1), 
+                        new String[] { String.valueOf(i + 1),
                                        ioError.toString() });
                 }
             }
         }
         try
         {
-            return new FetchResponse(hasData, row, 
+            return new FetchResponse(hasData, row,
                 mBerModule.getCharacterEncoding());
         }
         catch (UnsupportedEncodingException unsupEnc)
@@ -968,11 +969,11 @@ public class Connection implements Runnable
             throw new UnreachableCodeException();
         }
     }
-    
+
 
 
     /**
-     * Returns the value of a connection property. 
+     * Returns the value of a connection property.
      *
      * @param aRequest the request received from the client
      * @return a BER response object
@@ -989,15 +990,15 @@ public class Connection implements Runnable
             response[0] = new Integer(mConn.getAutoCommit() ? 1 : 0);
             try
             {
-                return new GetConnectionPropertyResponse(response, 
+                return new GetConnectionPropertyResponse(response,
                     mBerModule.getCharacterEncoding());
             }
             catch (UnsupportedEncodingException unsupEnc)
             {
                 throw new UnreachableCodeException();
             }
-        }            
-        throw new DbdException(DbdException.gUNKNOWN_PROPERTY, 
+        }
+        throw new DbdException(DbdException.gUNKNOWN_PROPERTY,
             new String[] { property });
     }
 
@@ -1015,12 +1016,12 @@ public class Connection implements Runnable
         String property = aRequest.getPropertyName();
         if (property.equals("AutoCommit"))
         {
-            boolean autoCommit = aRequest.getPropertyValue().equals("1"); 
-            gLog.debug("Settting AutoCommit to " + autoCommit); 
+            boolean autoCommit = aRequest.getPropertyValue().equals("1");
+            gLog.debug("Settting AutoCommit to " + autoCommit);
             mConn.setAutoCommit(autoCommit);
             return new SetConnectionPropertyResponse();
         }
-        throw new DbdException(DbdException.gUNKNOWN_PROPERTY, 
+        throw new DbdException(DbdException.gUNKNOWN_PROPERTY,
             new String[] { property });
     }
 
@@ -1041,7 +1042,7 @@ public class Connection implements Runnable
         {
             StatementHolder holder = mGetStatementHolder(aRequest.getHandle());
             String property = aRequest.getPropertyName();
-            if (property.equals("CursorName")) 
+            if (property.equals("CursorName"))
             {
                 ResultSet rs = holder.getResultSet();
                 if (rs == null)
@@ -1064,18 +1065,18 @@ public class Connection implements Runnable
                 return new GetStatementPropertyResponse(cursorname,
                     mBerModule.getCharacterEncoding());
             }
-            
+
             ResultSetMetaData rsmd = holder.getResultSetMetaData();
             if (rsmd == null)
                 throw new DbdException(DbdException.gNO_METADATA);
             int colcount = rsmd.getColumnCount();
-            
+
             if (property.equals("NAME"))
             {
                 String[] data = new String[colcount];
                 for (int i = 1; i <= colcount; i++)
                     data[i - 1] = rsmd.getColumnName(i);
-                return new GetStatementPropertyResponse(data, 
+                return new GetStatementPropertyResponse(data,
                     mBerModule.getCharacterEncoding());
             }
             else if (property.equals("TYPE"))
@@ -1131,7 +1132,7 @@ public class Connection implements Runnable
                         break;
                     default:
                         data[i - 1] = null;
-                        gLog.warn("isNullable returned an unknown value " + 
+                        gLog.warn("isNullable returned an unknown value " +
                             nullable);
                         break;
                     }
@@ -1139,12 +1140,12 @@ public class Connection implements Runnable
                 return new GetStatementPropertyResponse(data,
                     mBerModule.getCharacterEncoding());
             }
-            throw new DbdException(DbdException.gUNKNOWN_PROPERTY, 
+            throw new DbdException(DbdException.gUNKNOWN_PROPERTY,
                 new String[] { property });
-            
+
         }
         catch (UnsupportedEncodingException unsupEnc)
-        {       
+        {
             throw new UnreachableCodeException();
         }
     }
@@ -1166,37 +1167,37 @@ public class Connection implements Runnable
 
         if (property.equals("LongReadLen"))
         {
-            holder.getProperties().put(property, 
+            holder.getProperties().put(property,
                 new Integer(aRequest.getPropertyValue()));
             return new SetStatementPropertyResponse();
         }
         if (property.equals("LongTruncOk"))
         {
-            holder.getProperties().put(property, 
+            holder.getProperties().put(property,
                 new Boolean(aRequest.getPropertyValue().equals("1")));
             return new SetStatementPropertyResponse();
         }
         if (property.equals("ChopBlanks"))
         {
-            holder.getProperties().put(property, 
+            holder.getProperties().put(property,
                 new Boolean(aRequest.getPropertyValue().equals("1")));
             return new SetStatementPropertyResponse();
         }
         if (property.equals("jdbc_longreadall"))
         {
-            holder.getProperties().put(property, 
+            holder.getProperties().put(property,
                 new Boolean(aRequest.getPropertyValue().equals("1")));
             return new SetStatementPropertyResponse();
         }
 
-        throw new DbdException(DbdException.gUNKNOWN_PROPERTY, 
+        throw new DbdException(DbdException.gUNKNOWN_PROPERTY,
             new String[] { property });
-    }    
-    
+    }
+
 
     /**
      * Finishes a statement. A statement is finished when all its data
-     * has been read, so this method closes the result set. 
+     * has been read, so this method closes the result set.
      *
      * @param aRequest the request received from the client
      * @return a BER response object
@@ -1204,20 +1205,20 @@ public class Connection implements Runnable
      */
     /* Accept this message, but don't do anything. DBI forbids finish
      * to have any effect on the session's transaction state, and we
-     * can't guarantee that if we close the ResultSet, which is the 
+     * can't guarantee that if we close the ResultSet, which is the
      * obvious implementation here.
      *
-     * JDBC 2.0 also has implications here, since reading all a 
+     * JDBC 2.0 also has implications here, since reading all a
      * result set's data doesn't necessarily mean you're done with it.
-     */   
+     */
     BerObject handleRequest(StatementFinishRequest aRequest)
         throws SQLException
     {
         StatementHolder holder = mGetStatementHolder(aRequest.getHandle());
         //holder.finish();
         return new StatementFinishResponse();
-    }    
-    
+    }
+
     /**
      * Frees a statement for garbage collection.
      *
@@ -1244,7 +1245,7 @@ public class Connection implements Runnable
         {
             if (gLog.isTraceEnabled())
                 gLog.trace("Destroying statement " + handle);
-            
+
             // Close the statement and result set. This may cause
             // a commit or rollback in the JDBC driver in
             // AutoCommit mode, but not closing these objects
@@ -1253,7 +1254,7 @@ public class Connection implements Runnable
             holder = null;
         }
         return new StatementDestroyResponse();
-    }    
+    }
 
 
 
@@ -1261,7 +1262,7 @@ public class Connection implements Runnable
      * Uses reflection to call a method on the current Connection object.
      *
      * @param aRequest contains the method name and parameter values
-     * @return a response packet containing the return value from the 
+     * @return a response packet containing the return value from the
      *      called method
      * @exception SQLException if the invoked method throws a SQLException
      * @exception DbdException if an error occurs
@@ -1272,17 +1273,17 @@ public class Connection implements Runnable
         String methodName = aRequest.getMethodName();
         if (gLog.isTraceEnabled())
             gLog.trace("Func method: " + methodName);
-        String value =  mHandleFunc(mConn, aRequest.getMethodName(), 
+        String value =  mHandleFunc(mConn, aRequest.getMethodName(),
             aRequest.getParameters());
         if (gLog.isDebugEnabled())
             gLog.debug(methodName + " returned '" + value + "'");
         try
         {
-            return new ConnectionFuncResponse(value, 
+            return new ConnectionFuncResponse(value,
                 mBerModule.getCharacterEncoding());
         }
         catch (UnsupportedEncodingException unsupEnc)
-        { 
+        {
             throw new DbdException(DbdException.gUNSUPPORTED_ENCODING,
                 new String[] { mBerModule.getCharacterEncoding() });
         }
@@ -1296,10 +1297,10 @@ public class Connection implements Runnable
      * <code>Statement.</code>, <code>ResultSet.</code>, or
      * <code>ResultSetMetaData.</code> prefix on the method name.
      *
-     * @param aRequest contains a statement handle, 
+     * @param aRequest contains a statement handle,
      *      the method name and parameter values
-     * @return a response packet containing the return value from the 
-     *      called method 
+     * @return a response packet containing the return value from the
+     *      called method
      * @exception SQLException if the invoked method throws a SQLException
      * @exception DbdException if an error occurs
      */
@@ -1317,12 +1318,12 @@ public class Connection implements Runnable
         StatementHolder holder = mGetStatementHolder(aRequest.getHandle());
         if (holder == null)
             throw new DbdException(DbdException.gINVALID_STATEMENT_HANDLE);
-            
+
         String objectName = methodName.substring(0, dot);
         if (gLog.isTraceEnabled())
             gLog.trace("Looking up object type " + objectName);
         Object object = null;
-        if (objectName.equals("Statement") || 
+        if (objectName.equals("Statement") ||
             objectName.equals("PreparedStatement"))
         {
             object = holder.getStatement();
@@ -1347,7 +1348,7 @@ public class Connection implements Runnable
 
         if (gLog.isDebugEnabled())
         {
-            gLog.debug("Underlying object type: " + 
+            gLog.debug("Underlying object type: " +
                 object.getClass().getName());
         }
 
@@ -1357,11 +1358,11 @@ public class Connection implements Runnable
             gLog.debug(methodName + " returned '" + value + "'");
         try
         {
-            return new StatementFuncResponse(value, 
+            return new StatementFuncResponse(value,
                 mBerModule.getCharacterEncoding());
         }
         catch (UnsupportedEncodingException unsupEnc)
-        { 
+        {
             throw new DbdException(DbdException.gUNSUPPORTED_ENCODING,
                 new String[] { mBerModule.getCharacterEncoding() });
         }
@@ -1377,25 +1378,25 @@ public class Connection implements Runnable
      * @exception DbdException if an error occurs
      */
     /* We're ignoring the catalog and schema values. */
-    BerObject handleRequest(GetGeneratedKeysRequest aRequest) 
+    BerObject handleRequest(GetGeneratedKeysRequest aRequest)
         throws DbdException
     {
         try
         {
             String table = aRequest.getTable();
-            String column = aRequest.getColumn(); 
-            String key = ""; 
+            String column = aRequest.getColumn();
+            String key = "";
             if (mGeneratedKeys == null || mGeneratedKeys.length == 0)
-            {                
+            {
                 if (gLog.isDebugEnabled())
-                    gLog.debug("Generated key requested, but no keys are available"); 
+                    gLog.debug("Generated key requested, but no keys are available");
             }
             else if (table == null && column == null)
             {
-                // No particular table or column requested; return the first key. 
-                key = mGeneratedKeys[0].value; 
+                // No particular table or column requested; return the first key.
+                key = mGeneratedKeys[0].value;
                 if (gLog.isTraceEnabled())
-                    gLog.trace("No specific key column or table requested"); 
+                    gLog.trace("No specific key column or table requested");
             }
             else if (table == null && column != null)
             {
@@ -1408,7 +1409,7 @@ public class Connection implements Runnable
                     }
                 }
                 if (gLog.isTraceEnabled())
-                    gLog.trace("Key column '" + column + "' requested"); 
+                    gLog.trace("Key column '" + column + "' requested");
             }
             else if (table != null && column == null)
             {
@@ -1421,7 +1422,7 @@ public class Connection implements Runnable
                     }
                 }
                 if (gLog.isTraceEnabled())
-                    gLog.trace("Key table '" + table + "' requested"); 
+                    gLog.trace("Key table '" + table + "' requested");
             }
             else if (table != null && column != null)
             {
@@ -1436,15 +1437,15 @@ public class Connection implements Runnable
                 }
                 if (gLog.isTraceEnabled())
                 {
-                    gLog.trace("Key table and column '" + table + "'.'" + 
-                        column + "' requested"); 
+                    gLog.trace("Key table and column '" + table + "'.'" +
+                        column + "' requested");
                 }
             }
             return new GetGeneratedKeysResponse(key,
-                mBerModule.getCharacterEncoding()); 
+                mBerModule.getCharacterEncoding());
         }
         catch (UnsupportedEncodingException unsupEnc)
-        { 
+        {
             throw new DbdException(DbdException.gUNSUPPORTED_ENCODING,
                 new String[] { mBerModule.getCharacterEncoding() });
         }
@@ -1461,13 +1462,13 @@ public class Connection implements Runnable
      * @return the value of calling <code>toString</code> on the
      *      Object returned from the method call
      * @exception SQLException if the invoked method throws a SQLException
-     * @exception DbdException if an error occurs 
+     * @exception DbdException if an error occurs
      */
-    private String mHandleFunc(Object anObject, String aMethodName,  
-        Parameter[] aParameterList) throws SQLException,DbdException  
-    { 
+    private String mHandleFunc(Object anObject, String aMethodName,
+        Parameter[] aParameterList) throws SQLException,DbdException
+    {
         if (gLog.isDebugEnabled())
-            gLog.debug("Method has " + aParameterList.length + " parameters"); 
+            gLog.debug("Method has " + aParameterList.length + " parameters");
         Object[] parameterObjects = new Object[aParameterList.length];
         Class[] parameterClasses = new Class[aParameterList.length];
         try
@@ -1480,75 +1481,75 @@ public class Connection implements Runnable
                     parameterClasses[i] = mGetClass(aParameterList[i].type);
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace("Parameter " + (i + 1) + ": null; class " + 
+                        gLog.trace("Parameter " + (i + 1) + ": null; class " +
                             parameterClasses[i].getName());
                     }
                     continue;
                 }
 
-                if (gLog.isTraceEnabled())                  
+                if (gLog.isTraceEnabled())
                     gLog.trace("Parameter " + (i + 1) + ": ");
-                switch (aParameterList[i].type) 
+                switch (aParameterList[i].type)
                 {
                 case Types.BINARY:
                 case Types.VARBINARY:
                 case Types.LONGVARBINARY:
-                    parameterObjects[i] = 
+                    parameterObjects[i] =
                         aParameterList[i].value.toByteArray();
                     break;
                 case Types.TINYINT:
-                    parameterObjects[i] = 
+                    parameterObjects[i] =
                         new Byte(aParameterList[i].value.toString());
                     break;
                 case Types.SMALLINT:
-                    parameterObjects[i] = 
+                    parameterObjects[i] =
                         new Short(aParameterList[i].value.toString());
                     break;
                 case Types.INTEGER:
-                    parameterObjects[i] = 
+                    parameterObjects[i] =
                         new Integer(aParameterList[i].value.toString());
                     break;
-                case Types.BIGINT: 
-                    parameterObjects[i] = 
+                case Types.BIGINT:
+                    parameterObjects[i] =
                         new Long(aParameterList[i].value.toString());
                     break;
-                case Types.REAL: 
-                    parameterObjects[i] = 
+                case Types.REAL:
+                    parameterObjects[i] =
                         new Float(aParameterList[i].value.toString());
                     break;
-                case Types.FLOAT: 
-                case Types.DOUBLE: 
-                    parameterObjects[i] = 
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                    parameterObjects[i] =
                         new Double(aParameterList[i].value.toString());
                     break;
-                case Types.DECIMAL: 
+                case Types.DECIMAL:
                 case Types.NUMERIC:
-                    parameterObjects[i] = 
+                    parameterObjects[i] =
                         new BigDecimal(aParameterList[i].value.toString());
                     break;
                 case Types.BIT:   // Clients must send "0" or "1"
                     parameterObjects[i] = new Boolean(
                         aParameterList[i].value.toString().equals("1"));
                     break;
-                case Types.CHAR: 
+                case Types.CHAR:
                 case Types.VARCHAR:
                 case Types.LONGVARCHAR:  // Use a stream here?
                     parameterObjects[i] = aParameterList[i].value.toString();
                     break;
-                case Types.DATE:      
-                    parameterObjects[i] = 
+                case Types.DATE:
+                    parameterObjects[i] =
                         java.sql.Date.valueOf(aParameterList[i].value.toString());
                     break;
-                case Types.TIME: 
-                    parameterObjects[i] = 
+                case Types.TIME:
+                    parameterObjects[i] =
                         java.sql.Time.valueOf(aParameterList[i].value.toString());
                     break;
-                case Types.TIMESTAMP: 
-                    parameterObjects[i] = 
+                case Types.TIMESTAMP:
+                    parameterObjects[i] =
                         java.sql.Timestamp.valueOf(aParameterList[i].value.toString());
                     break;
-                case Types.OTHER: 
-                default: 
+                case Types.OTHER:
+                default:
                     parameterObjects[i] = aParameterList[i].value.toString();
                     break;
                 }
@@ -1561,7 +1562,7 @@ public class Connection implements Runnable
                 {
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace("byte[], length " + 
+                        gLog.trace("byte[], length " +
                             ((byte[]) parameterObjects[i]).length +
                             "; class " + parameterClasses[i].getName());
                     }
@@ -1570,13 +1571,13 @@ public class Connection implements Runnable
                 {
                     if (gLog.isTraceEnabled())
                     {
-                        gLog.trace(parameterObjects[i].toString() + 
+                        gLog.trace(parameterObjects[i].toString() +
                             "; class " + parameterClasses[i].getName());
                     }
                 }
             }
-            
-            try 
+
+            try
             {
                 // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6342411
                 // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4283544
@@ -1599,7 +1600,7 @@ public class Connection implements Runnable
                 if (aParameterList.length == 0)
                     parameterClasses = null;
                 Object returnValue = mInvokeMethod(anObject,
-                    aMethodName, parameterClasses, parameterObjects); 
+                    aMethodName, parameterClasses, parameterObjects);
 
                 // Null should be turned into BerNull. Boolean is
                 // turned into 1 or 0 so that the return value
@@ -1635,12 +1636,12 @@ public class Connection implements Runnable
                     new String[] { target.toString() });
             }
         }
-        catch (Exception e) 
-        { 
-            gLog.debug(e, e); 
+        catch (Exception e)
+        {
+            gLog.debug(e, e);
             throw new DbdException(DbdException.gGENERIC_EXCEPTION,
                 new String[] { e.toString() });
-        }            
+        }
     }
 
     /**
@@ -1650,89 +1651,89 @@ public class Connection implements Runnable
      * @param aMethodName the method name
      * @param parameterClasses the class objects for the method parameters
      * @param parameterObjects the parameter objects
-     * @return the method return value    
+     * @return the method return value
      * @throws IllegalArgumentException
      * @throws InvocationTargetException
      * @throws DbdException if an otherwise unreported problem
      * causes the method to go uninvoked
      */
-    private Object mInvokeMethod(Object anObject, String aMethodName, 
-        Class[] parameterClasses, Object[] parameterObjects) 
+    private Object mInvokeMethod(Object anObject, String aMethodName,
+        Class[] parameterClasses, Object[] parameterObjects)
         throws IllegalArgumentException, InvocationTargetException,
         DbdException
     {
-        Class<?> currentClass = anObject.getClass(); 
+        Class<?> currentClass = anObject.getClass();
         while (currentClass != null)
         {
             try
             {
-                Method method = currentClass.getMethod(aMethodName, 
+                Method method = currentClass.getMethod(aMethodName,
                     parameterClasses);
-                gLog.trace("Invoking " + currentClass.getName() + "." + 
-                    aMethodName); 
+                gLog.trace("Invoking " + currentClass.getName() + "." +
+                    aMethodName);
                 return method.invoke(anObject, parameterObjects);
             }
             catch (NoSuchMethodException noMethod)
             {
-                gLog.trace(currentClass.getName() + "/" + noMethod.toString()); 
+                gLog.trace(currentClass.getName() + "/" + noMethod.toString());
             }
             catch (SecurityException security)
             {
-                gLog.trace(currentClass.getName() + "/" + security.toString()); 
+                gLog.trace(currentClass.getName() + "/" + security.toString());
             }
             catch (IllegalAccessException access)
             {
-                gLog.trace(currentClass.getName() + "/" + access.toString()); 
+                gLog.trace(currentClass.getName() + "/" + access.toString());
             }
 
-            Class<?>[] interfaces = currentClass.getInterfaces(); 
+            Class<?>[] interfaces = currentClass.getInterfaces();
             for (int i = 0; i < interfaces.length; i++)
             {
                 try
                 {
                     Method method = interfaces[i].getMethod(
                         aMethodName, parameterClasses);
-                    gLog.trace("Invoking " + interfaces[i].getName() + "." + 
-                        aMethodName); 
-                    return method.invoke(anObject, parameterObjects); 
+                    gLog.trace("Invoking " + interfaces[i].getName() + "." +
+                        aMethodName);
+                    return method.invoke(anObject, parameterObjects);
                 }
                 catch (NoSuchMethodException noMethod)
                 {
-                    gLog.trace(currentClass.getName() + "/" + 
-                        noMethod.toString()); 
+                    gLog.trace(currentClass.getName() + "/" +
+                        noMethod.toString());
                 }
                 catch (SecurityException security)
                 {
-                    gLog.trace(currentClass.getName() + "/" + 
-                        security.toString()); 
+                    gLog.trace(currentClass.getName() + "/" +
+                        security.toString());
                 }
                 catch (IllegalAccessException access)
                 {
-                    gLog.trace(currentClass.getName() + "/" + 
-                        access.toString()); 
+                    gLog.trace(currentClass.getName() + "/" +
+                        access.toString());
                 }
             }
 
             currentClass = currentClass.getSuperclass();
         }
         throw new DbdException(DbdException.gREFLECTION_EXCEPTION,
-            new String[] { "Unable to invoke method" }); 
+            new String[] { "Unable to invoke method" });
     }
 
     /*
-    private Method mTestInterfaces(Class c, String aMethodName, 
-        Class[] parameterClasses) 
+    private Method mTestInterfaces(Class c, String aMethodName,
+        Class[] parameterClasses)
     {
-        Class[] interfaces = c.getInterfaces(); 
-        gLog.debug("Found " + interfaces.length + 
-            " other interfaces of " + c.getName() + " to try"); 
+        Class[] interfaces = c.getInterfaces();
+        gLog.debug("Found " + interfaces.length +
+            " other interfaces of " + c.getName() + " to try");
         for (int i = 0; i < interfaces.length; i++)
         {
             int mod = interfaces[i].getModifiers();
             if (Modifier.isPublic(mod))
             {
                 gLog.debug("interface " + interfaces[i].getName() +
-                    " is public"); 
+                    " is public");
                 try
                 {
                     Method method = interfaces[i].getMethod(
@@ -1740,7 +1741,7 @@ public class Connection implements Runnable
                     if (gLog.isTraceEnabled())
                     {
                         gLog.trace("Found public interface " +
-                            interfaces[i].getName() + 
+                            interfaces[i].getName() +
                             " with method " + aMethodName);
                     }
                     return method;
@@ -1753,7 +1754,7 @@ public class Connection implements Runnable
                 }
             }
         }
-        return null; 
+        return null;
     }
     */
 
@@ -1761,7 +1762,7 @@ public class Connection implements Runnable
     // Support methods.
 
 
-    /** 
+    /**
      * Returns a <code>java.lang.Class</code> object
      * corresponding to the argument, which should be a value
      * from <code>java.sql.Types</code>.  This method returns the
@@ -1787,7 +1788,7 @@ public class Connection implements Runnable
      */
     private Class mGetClass(int aJdbcType)
     {
-        switch (aJdbcType) 
+        switch (aJdbcType)
         {
         case Types.BINARY:
         case Types.VARBINARY:
@@ -1800,19 +1801,19 @@ public class Connection implements Runnable
         case Types.INTEGER:             return Integer.TYPE;
         case Types.BIGINT:              return Long.TYPE;
         case Types.REAL:                return Float.TYPE;
-        case Types.FLOAT: 
+        case Types.FLOAT:
         case Types.DOUBLE:              return Double.TYPE;
-        case Types.DECIMAL: 
+        case Types.DECIMAL:
         case Types.NUMERIC:             return BigDecimal.class;
         case Types.BIT:                 return Boolean.TYPE;
-        case Types.CHAR: 
+        case Types.CHAR:
         case Types.VARCHAR:
         case Types.LONGVARCHAR:         return String.class;
         case Types.DATE:                return java.sql.Date.class;
         case Types.TIME:                return java.sql.Time.class;
         case Types.TIMESTAMP:           return java.sql.Timestamp.class;
-        case Types.OTHER: 
-        default: 
+        case Types.OTHER:
+        default:
             return String.class;  // String will be the actual type.
         }
     }
@@ -1867,8 +1868,8 @@ public class Connection implements Runnable
      * @exception DataTruncation if the data is truncated
      * @exception IOException if an error occurs reading from the stream
      */
-    private byte[] mReadLong(int aColumnIndex, InputStream anInputStream, 
-        int aLongReadLen, boolean aLongTruncOk, boolean readAll) 
+    private byte[] mReadLong(int aColumnIndex, InputStream anInputStream,
+        int aLongReadLen, boolean aLongTruncOk, boolean readAll)
         throws DbdException, IOException
     {
         if (aLongReadLen == 0)
@@ -1891,7 +1892,7 @@ public class Connection implements Runnable
         else
         {
             while (totalread < aLongReadLen &&
-                (read = anInputStream.read(buffer, 0, 
+                (read = anInputStream.read(buffer, 0,
                     Math.min(buffer.length, (aLongReadLen - totalread)))) != -1)
             {
                 totalread += read;
@@ -1901,9 +1902,9 @@ public class Connection implements Runnable
         baos.close();
         if (gLog.isDebugEnabled())
         {
-            gLog.debug("Read " + totalread + " bytes from LONG column " + 
-                aColumnIndex + "(LongReadLen=" + aLongReadLen + 
-                ";LongTruncOk=" + aLongTruncOk + ";jdbc_longreadall=" + 
+            gLog.debug("Read " + totalread + " bytes from LONG column " +
+                aColumnIndex + "(LongReadLen=" + aLongReadLen +
+                ";LongTruncOk=" + aLongTruncOk + ";jdbc_longreadall=" +
                 readAll + ")");
         }
         if (!readAll && (!aLongTruncOk && anInputStream.read() != -1))
@@ -1928,16 +1929,16 @@ public class Connection implements Runnable
      * @exception DataTruncation if the data is truncated
      * @exception IOException if an error occurs reading from the stream
      */
-    private char[] mReadLong(int aColumnIndex, Reader aReader, 
-        int aLongReadLen, boolean aLongTruncOk, boolean readAll) 
+    private char[] mReadLong(int aColumnIndex, Reader aReader,
+        int aLongReadLen, boolean aLongTruncOk, boolean readAll)
         throws DbdException, IOException
     {
         if (aLongReadLen == 0)
             return null;
         if (aReader == null)
             return null;
-        CharArrayWriter out = new CharArrayWriter(aLongReadLen); 
-        char[] buffer = new char[sLONG_READ_BUFFER_SIZE]; 
+        CharArrayWriter out = new CharArrayWriter(aLongReadLen);
+        char[] buffer = new char[sLONG_READ_BUFFER_SIZE];
         int read;
         int totalread = 0;
 
@@ -1952,7 +1953,7 @@ public class Connection implements Runnable
         else
         {
             while (totalread < aLongReadLen &&
-                (read = aReader.read(buffer, 0, 
+                (read = aReader.read(buffer, 0,
                     Math.min(buffer.length, (aLongReadLen - totalread)))) != -1)
             {
                 totalread += read;
@@ -1962,8 +1963,8 @@ public class Connection implements Runnable
         out.close();
         if (gLog.isDebugEnabled())
         {
-            gLog.debug("Read " + totalread + " bytes from LONG column " + 
-                aColumnIndex + "(LongReadLen=" + aLongReadLen + 
+            gLog.debug("Read " + totalread + " bytes from LONG column " +
+                aColumnIndex + "(LongReadLen=" + aLongReadLen +
                 ";LongTruncOk=" + aLongTruncOk + ";jdbc_longreadall=" +
                 readAll + ")");
         }
@@ -1976,7 +1977,7 @@ public class Connection implements Runnable
         return out.toCharArray();
     }
 
-    /** 
+    /**
      * Sends the given error information to the client.
      *
      * @param aMessage the error text
@@ -1986,7 +1987,7 @@ public class Connection implements Runnable
      */
     private void mSendError(SQLException aSQLException)
     {
-        try 
+        try
         {
             ErrorResponse error = new ErrorResponse(aSQLException,
                 mBerModule.getCharacterEncoding());
@@ -2009,7 +2010,7 @@ public class Connection implements Runnable
 
 
 /**
- * This class encapsulates a PreparedStatement and its associated 
+ * This class encapsulates a PreparedStatement and its associated
  * ResultSet, ResultSetMetaData, and properties.
  */
 class StatementHolder
@@ -2024,7 +2025,7 @@ class StatementHolder
     Hashtable<String, Object> mStatementProperties;
 
     /**
-     * Constructor - initializes fields. 
+     * Constructor - initializes fields.
      *
      * @param aStatement a PreparedStatement
      */
@@ -2032,13 +2033,13 @@ class StatementHolder
     {
         mStatement = aStatement;
         mStatementProperties = new Hashtable<String, Object>();
-        
+
         mResultSet = null;
         mResultSetMetaData = null;
     }
 
     /**
-     * Closes this statement. Ignores any exceptions thrown by 
+     * Closes this statement. Ignores any exceptions thrown by
      * PreparedStatement.close.
      */
     void close()
@@ -2054,13 +2055,13 @@ class StatementHolder
     }
 
     /**
-     * Finishes this statement. Ignores any exceptions thrown by 
-     * ResultSet.close. 
+     * Finishes this statement. Ignores any exceptions thrown by
+     * ResultSet.close.
      */
-    /* This is like DBI's finish - no more data to be read from the 
-     * statement, but execute may be called again. However, in JDBC, 
-     * closing the result set may commit a transaction in AutoCommit 
-     * mode, which is forbidden by the DBI spec. I'm leaving this 
+    /* This is like DBI's finish - no more data to be read from the
+     * statement, but execute may be called again. However, in JDBC,
+     * closing the result set may commit a transaction in AutoCommit
+     * mode, which is forbidden by the DBI spec. I'm leaving this
      * here, but it shouldn't be called unless we decide to support
      * this behavior.
      */
@@ -2103,7 +2104,7 @@ class StatementHolder
     void setResultSet(ResultSet aResultSet) throws SQLException
     {
         mResultSet = aResultSet;
-        mResultSetMetaData = 
+        mResultSetMetaData =
             (aResultSet == null) ? null : aResultSet.getMetaData();
     }
 
@@ -2160,7 +2161,7 @@ class GeneratedKey
      * @param aColumnName the column name
      * @param aValue the value
      */
-    GeneratedKey(String aCatalog, String aSchema, String aTable, 
+    GeneratedKey(String aCatalog, String aSchema, String aTable,
         String aColumnName, String aValue)
     {
         catalog = aCatalog;
@@ -2184,20 +2185,20 @@ class GeneratedKey
         if (schema != null && b.length() > 0)
             b.append(".").append(schema);
         else if (schema != null)
-            b.append(schema);            
+            b.append(schema);
         if (table != null && b.length() > 0)
             b.append(".").append(table);
         else if (table != null)
-            b.append(table);            
+            b.append(table);
         if (columnName != null && b.length() > 0)
             b.append(".").append(columnName);
         else if (columnName != null)
             b.append(columnName);
-        b.append(" = "); 
+        b.append(" = ");
         if (value != null)
             b.append(value);
         else
             b.append("NULL");
-        return b.toString(); 
+        return b.toString();
     }
 }
