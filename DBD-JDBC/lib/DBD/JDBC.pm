@@ -1568,12 +1568,24 @@
         if ($i) {
             # tag() will return undef when the end of the buffer is reached
             while ($tag = $ber2->tag()) {
+                elsif ($tag == $ber2->BOOLEAN()) {
+                    $ber2->decode(BOOLEAN => \$field);
+                    push @$arg, $field;
+                }
+                elsif ($tag == $ber2->INTEGER()) {
+                    $ber2->decode(INTEGER => \$field);
+                    push @$arg, $field;
+                }
+                elsif ($tag == $ber2->STRING()) {
+                    $ber2->decode(STRING => \$field);
+                    push @$arg, $field;
+                }
                 if ($tag == $ber2->NULL()) {
                     $ber2->decode(NULL => \$field);
                     push @$arg, undef;
                 }
-                elsif ($tag == $ber2->STRING()) {
-                    $ber2->decode(STRING => \$field);
+                elsif ($tag == $ber2->REAL()) {
+                    $ber2->decode(REAL => \$field);
                     push @$arg, $field;
                 }
                 $i++;    # Used periodically in debugging.

@@ -65,6 +65,26 @@ class FetchResponse extends BerSequence
             {
                 if (aRow[i] == null)
                     mSequence[i + 1] = BerDbdModule.NULL;
+                else if (aRow[i] instanceof Boolean)
+                {
+                    mSequence[i + 1] = new BerBoolean((Boolean) aRow[i]);
+                }
+                else if (aRow[i] instanceof Integer)
+                {
+                    mSequence[i + 1] = new BerInteger((Integer) aRow[i]);
+                }
+                /* TODO support REAL TYPE in BER
+                else if (aRow[i] instanceof BigDecimal)
+                {
+                    mSequence[i + 1] = new BerReal((BigDecimal) aRow[i]);
+                }
+                */
+                /* TODO support REAL TYPE in BER
+                else if (aRow[i] instanceof Float)
+                {
+                    mSequence[i + 1] = new BerReal((Float) aRow[i]);
+                }
+                */
                 else if (aRow[i] instanceof String)
                 {
                     mSequence[i + 1] = new BerOctetString((String) aRow[i],

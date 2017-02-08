@@ -849,8 +849,15 @@ public class Connection implements Runnable
                     }
                     switch (type)
                     {
-                    case Types.BINARY: 
-                    case Types.VARBINARY: 
+                    case Types.BIT:
+                        row[i] = rs.getBoolean(i + 1);
+                        break;
+                    case Types.BIGINT:
+                    case Types.INTEGER:
+                        row[i] = rs.getInt(i + 1);
+                        break;
+                    case Types.BINARY:
+                    case Types.VARBINARY:
                         row[i] = rs.getBytes(i + 1);
                         break;
 
