@@ -1,24 +1,24 @@
 # $Id: JDBC.pm,v 1.49 2008/12/17 00:05:23 gemerson Exp $
 #
 #  Copyright 1999-2001,2005,2008 Vizdom Software, Inc. All Rights Reserved.
-#  
-#  This program is free software; you can redistribute it and/or 
-#  modify it under the same terms as the Perl Kit, namely, under 
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the same terms as the Perl Kit, namely, under
 #  the terms of either:
-#  
+#
 #      a) the GNU General Public License as published by the Free
-#      Software Foundation; either version 1 of the License, or 
+#      Software Foundation; either version 1 of the License, or
 #      (at your option) any later version, or
-#  
+#
 #      b) the "Artistic License" that comes with the Perl Kit.
-#  
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
 # either the GNU General Public License or the Artistic License
 # for more details.
 
-# There's a warning in (some) later versions of Perl about the 
+# There's a warning in (some) later versions of Perl about the
 # string used here in require, so try to ignore that.
 
 { no warnings qw(portable); require 5.8.0; }
@@ -26,24 +26,24 @@
 {
     package DBD::JDBC;
     use DBI 1.48;
-    require Exporter; 
-    @ISA = qw(Exporter); 
+    require Exporter;
+    @ISA = qw(Exporter);
 
     # DBI 1.54 added SQL_BIGINT back.
     if ($DBI::VERSION > 1.54) {
-        %EXPORT_TAGS = ( sql_types => [ ], ); 
+        %EXPORT_TAGS = ( sql_types => [ ], );
         @EXPORT_OK = ();
     }
     else {
-        %EXPORT_TAGS = ( sql_types => [ qw( SQL_BIGINT ) ], ); 
+        %EXPORT_TAGS = ( sql_types => [ qw( SQL_BIGINT ) ], );
         @EXPORT_OK = qw(SQL_BIGINT);
     }
 
 
-    use vars qw($methods_installed); 
+    use vars qw($methods_installed);
 
     $DBD::JDBC::VERSION = '0.71';
-    
+
     $DBD::JDBC::drh = undef;
 
     # Driver handle constructor. This is pretty much straight
@@ -67,18 +67,18 @@
     }
 
 
-    # This will dump the BER buffer to STDERR in a rather verbose way. 
+    # This will dump the BER buffer to STDERR in a rather verbose way.
     #
     # args: the BER buffer, as a string
     # returns: nothing
     sub _dump {
         my ($str) = shift;
         my ($b, $result);
-        my ($pos) = 0; 
+        my ($pos) = 0;
         my ($upper) = shift || length($str);
         do {
             $b = CORE::unpack("C",substr($str,$pos++,1));
-            $result .= join('', unpack("B*", chr($b))) . 
+            $result .= join('', unpack("B*", chr($b))) .
                 " (" . chr($b) .  ") | ";
         } while($pos < $upper);
         print STDERR "$result\n";
@@ -88,32 +88,32 @@
     # This is a utility which handles the tedious part of
     # sending a message to the server and decoding the
     # response. If an error occurs, this function will use
-    # DBI::set_err and return undef. 
+    # DBI::set_err and return undef.
     #
-    # args: 
+    # args:
     #   $h: a DBI object handle; used for debugging and error reporting
     #   $socket: the server socket
     #   $ber: a BER object for encoding and decoding messages
-    #   $encode_list: an array reference containing the arguments 
+    #   $encode_list: an array reference containing the arguments
     #                 for the BER encode
     #   $decode_list: an array reference containing the arguments for
     #                 the BER decode method
     #
     # returns: true on success, false (and calls $h->set_err) on failure
-    sub _send_request { 
-        my ($h, $socket, $ber, $encode_list, $decode_list, $method, 
+    sub _send_request {
+        my ($h, $socket, $ber, $encode_list, $decode_list, $method,
             $avoid_set_err) = @_;
         my $debug = $h->trace();
 
 
         $ber->buffer("");
-        $h->trace_msg("Encoding [" . join(" | ", @$encode_list) . "]\n", 3) 
+        $h->trace_msg("Encoding [" . join(" | ", @$encode_list) . "]\n", 3)
             if $debug;
         $ber->encode(@$encode_list);
 
         local($SIG{PIPE}) = "IGNORE";
         $h->trace_msg("Sending request to server\n", 3) if $debug;
-        $ber->write($socket); 
+        $ber->write($socket);
         if ($@) {
             die $@ if $avoid_set_err;
             return $h->set_err(DBD::JDBC::ErrorMessages::send_error($@));
@@ -145,7 +145,7 @@
             push @{$h->{jdbc_error}}, @errors;
             $h->trace_msg("Error: ".$errors[0]->{errstr}."\n", 3) if $debug;
             die $errors[0]->{errstr} if $avoid_set_err;
-            return $h->set_err($errors[0]->{err}, $errors[0]->{errstr}, 
+            return $h->set_err($errors[0]->{err}, $errors[0]->{errstr},
                                     substr($errors[0]->{state}, 0, 5), $method);
         }
         else {
@@ -158,7 +158,7 @@
                     if $debug;
                 $ber->[ Convert::BER::_ERROR() ] = "";
                 die $err if $avoid_set_err;
-                return 
+                return
                    $h->set_err(DBD::JDBC::ErrorMessages::ber_error($err));
             }
             return 1;
@@ -194,8 +194,8 @@
                          DISTINCT => 2001,
                          STRUCT => 2002,
                          ARRAY => 2003,
-                         BLOB => 2004, 
-                         CLOB => 2005, 
+                         BLOB => 2004,
+                         CLOB => 2005,
                          REF => 2006,
               );
 
@@ -222,7 +222,7 @@
     # Opens a socket connection to the host/port specified in the
     # dsn, sends a connection request to the server-side JDBC
     # driver, and returns a new database handle. Parameters which
-    # can be specified in the DSN: 
+    # can be specified in the DSN:
     #  hostname: the DBD::JDBC server host; may be in the form name:port
     #  port: the DBD::JDBC server port
     #  url: the JDBC URL to pass to the JDBC driver
@@ -251,12 +251,12 @@
     sub connect {
         my ($drh, $dsn, $user, $auth, $attr) = @_;
 
-        my $debug = DBI->trace(); 
+        my $debug = DBI->trace();
 
         # Any ; or = characters in the url must be escaped using
         # http url escape syntax (e.g., an url of foo=bar becomes
         # foo%3Dbar). The driver will unescape the url portion of
-        # the dsn. dsn format: 
+        # the dsn. dsn format:
         #   hostname=<host>[:port];[port=<port>;]url=<url>[;jdbc_character_set=<encoding>]
 
         my %dsn = split /[;=]/, $dsn;
@@ -286,11 +286,11 @@
             unless $url;
 
         # Connect to the server.
-        my $socket = IO::Socket::INET->new(PeerAddr => $hostname, 
+        my $socket = IO::Socket::INET->new(PeerAddr => $hostname,
                                            PeerPort => $port,
                                            Proto => 'tcp');
 
-        return $drh->set_err(DBD::JDBC::ErrorMessages::socket_error($@)) 
+        return $drh->set_err(DBD::JDBC::ErrorMessages::socket_error($@))
             if !$socket;
 
         my ($ber) = new DBD::JDBC::BER;
@@ -298,9 +298,9 @@
         my $response;
         return undef unless
             _send_request($drh,
-                          $socket, $ber, 
-                          [CONNECT_REQ => [STRING => $url, 
-                                           ($user?'STRING':'NULL') => $user, 
+                          $socket, $ber,
+                          [CONNECT_REQ => [STRING => $url,
+                                           ($user?'STRING':'NULL') => $user,
                                            ($auth?'STRING':'NULL') => $auth,
                                            STRING => $encoding,
                                            HASH => [STRING => [%properties]]]],
@@ -323,7 +323,7 @@
         $dbh->STORE('jdbc_socket' => $socket);
         $dbh->STORE('jdbc_ber' => $ber);
         $dbh->STORE('jdbc_character_set' => $encoding);
-        $dbh->STORE('jdbc_url' => $url); 
+        $dbh->STORE('jdbc_url' => $url);
         # The connection list is used by disconnect_all.
         my ($conns) = $drh->FETCH('jdbc_connections') || [];
         push @$conns, $dbh;
@@ -348,7 +348,7 @@
     sub parse_trace_flag {
         my ($flag) = shift;
         return DBI->parse_trace_flag($flag);
-    } 
+    }
 
 
     # All cached database handles will be disconnected. The
@@ -371,7 +371,7 @@
             $name = $conn->{'Name'};
             $drh->trace_msg("Disconnecting $name\n", 3);
             $conn->disconnect() ||
-                $drh->trace_msg("Failed to disconnect $name: " . 
+                $drh->trace_msg("Failed to disconnect $name: " .
                                 ($drh->errstr ? $drh->errstr : "") . "\n", 3);
         }
     }
@@ -410,33 +410,33 @@
     *_send_request = \&DBD::JDBC::_send_request;
 
     # Prepares a statement for execution.
-    # 
+    #
     # JDBC: Connection.prepareStatement
     sub prepare {
         my ($dbh, $statement, $params) = @_;
         my ($debug) = $dbh->trace();
-        
-        my ($keyType, $keyTypeCode, $keyList) = (undef, 'STRING', []); 
+
+        my ($keyType, $keyTypeCode, $keyList) = (undef, 'STRING', []);
         if ($params && $params->{'jdbc_columnnames'}) {
-            $keyType = "name"; 
-            $keyList = $params->{'jdbc_columnnames'}; 
+            $keyType = "name";
+            $keyList = $params->{'jdbc_columnnames'};
         }
         elsif ($params && $params->{'jdbc_columnindexes'}) {
-            $keyType = "index"; 
+            $keyType = "index";
             $keyTypeCode = 'INTEGER';
-            $keyList = $params->{'jdbc_columnindexes'}; 
+            $keyList = $params->{'jdbc_columnindexes'};
         }
 
         my ($statement_handle);
         return undef unless
             _send_request($dbh,
                           $dbh->FETCH('jdbc_socket'), $dbh->FETCH('jdbc_ber'),
-                          [PREPARE_REQ => [STRING => $statement, 
-                                           ($keyType?'STRING':'NULL') => $keyType, 
+                          [PREPARE_REQ => [STRING => $statement,
+                                           ($keyType?'STRING':'NULL') => $keyType,
                                            $keyTypeCode => [@$keyList] ] ],
                           [PREPARE_RESP => \$statement_handle]);
-        
-        my $param_count = _count_params($statement); 
+
+        my $param_count = _count_params($statement);
         my $sth = DBI::_new_sth($dbh, {
             'Statement' => $statement,
             'NUM_OF_PARAMS' => $param_count,
@@ -450,18 +450,18 @@
 
         ## Set up ParamValues (DBI 1.28). Initialize the keys to the
         ## parameter numbers (if any).
-        $sth->STORE('jdbc_params', {}); 
-        $sth->STORE('jdbc_params_types', {}); 
-        for my $i (1..$param_count) { 
-            $sth->{'jdbc_params'}->{$i} = undef; 
-            $sth->{'jdbc_params_types'}->{$i} = undef; 
+        $sth->STORE('jdbc_params', {});
+        $sth->STORE('jdbc_params_types', {});
+        for my $i (1..$param_count) {
+            $sth->{'jdbc_params'}->{$i} = undef;
+            $sth->{'jdbc_params_types'}->{$i} = undef;
         }
 
         # Copy the current value of inherited properties to the server.
         $sth->STORE('LongReadLen' => $dbh->FETCH('LongReadLen'));
         $sth->STORE('LongTruncOk' => $dbh->FETCH('LongTruncOk') ? 1 : 0);
         $sth->STORE('ChopBlanks' => $dbh->FETCH('ChopBlanks') ? 1 : 0);
-        $sth->STORE('jdbc_longreadall' => 
+        $sth->STORE('jdbc_longreadall' =>
             $dbh->FETCH('jdbc_longreadall') ? 1 : 0);
         $sth;
     }
@@ -492,7 +492,7 @@
     # JDBC: Connection.isClosed
     sub ping {
         my ($dbh) = shift;
-        
+
         # If the connection isn't active, no point in pinging it.
         return 0 unless $dbh->FETCH('Active');
         my ($resp);
@@ -514,14 +514,14 @@
     sub disconnect {
         my ($dbh) = shift;
         my ($debug) = $dbh->trace();
-        
+
         # Don't disconnect inactive connections.
         return 1 unless $dbh->FETCH('Active');
-        
+
         $dbh->STORE('Active' => 0);
         my $resp;
         my ($result) = _send_request($dbh,
-                                     $dbh->FETCH('jdbc_socket'), 
+                                     $dbh->FETCH('jdbc_socket'),
                                      $dbh->FETCH('jdbc_ber'),
                                      [DISCONNECT_REQ => 0],
                                      [DISCONNECT_RESP => \$resp]);
@@ -557,7 +557,7 @@
 
     sub jdbc_func {
         my ($dbh) = shift;
-        my ($method) = pop @_; 
+        my ($method) = pop @_;
         $method =~ s/.*://;  # method name starts out fully-qualified
         $method =~ s/^jdbc_//;
         my (@parameters) = @_;
@@ -582,8 +582,8 @@
                           [CONNECTION_FUNC_REQ => [$method,
                                                    \@parameters_with_types]],
 
-                          [CONNECTION_FUNC_RESP => \@value]); 
-                            
+                          [CONNECTION_FUNC_RESP => \@value]);
+
         return $value[0];
     }
 
@@ -592,15 +592,15 @@
     # data from DatabaseMetaData on the server.
     sub get_info {
         my ($dbh, $type) = @_;
-        
+
         return undef unless defined $type and length $type;
-        
+
         ## For now, use the JDBC URL to retrieve a string to
         ## serve as the DBMS name. Whenever access to
         ## DatabaseMetaData is implemented, use
         ## getDatabaseProductName.
-        my $name; 
-        my $url = $dbh->{jdbc_url}; 
+        my $name;
+        my $url = $dbh->{jdbc_url};
         if ($url =~ m`jdbc:(.+)://`) { # jdbc:xxx[:yyy]://conn_info
             $name = $1;
         } elsif ($url =~ m`jdbc:([^:]+):`) { # jdbc:xxx:conn_info
@@ -628,7 +628,7 @@
     }
 
 
-    # This method is not implemented. 
+    # This method is not implemented.
     # Implementation notes: call
     # DatabaseMetaData.getTables(). Use JDBC's default values
     # (null, "", etc) for the catalog, schema, tablenamepattern,
@@ -640,7 +640,7 @@
         undef;
     }
 
-    # This method is not implemented.  
+    # This method is not implemented.
     # These names match the column names in DatabaseMetaData.getTypeInfo
     # exactly, except for AUTO_UNIQUE_VALUE, which is
     # AUTO_INCREMENT in JDBC, and COLUMN_SIZE, which is PRECISION in JDBC.
@@ -671,22 +671,22 @@
     sub parse_trace_flag {
         my ($flag) = shift;
         return DBI->parse_trace_flag($flag);
-    } 
+    }
 
 
     # Implementation of last_insert_id.
     sub last_insert_id {
-        my ($dbh, $catalog, $schema, $table, $field) = @_; 
-        my $key; 
+        my ($dbh, $catalog, $schema, $table, $field) = @_;
+        my $key;
         return undef unless
-            _send_request($dbh, 
+            _send_request($dbh,
                           $dbh->FETCH('jdbc_socket'), $dbh->FETCH('jdbc_ber'),
-                          [GET_GENERATED_KEYS_REQ => [($catalog?'STRING':'NULL') => $catalog, 
+                          [GET_GENERATED_KEYS_REQ => [($catalog?'STRING':'NULL') => $catalog,
                                                       ($schema?'STRING':'NULL') => $schema,
-                                                      ($table?'STRING':'NULL') => $table, 
+                                                      ($table?'STRING':'NULL') => $table,
                                                       ($field?'STRING':'NULL') => $field]],
-                          [GET_GENERATED_KEYS_RESP => \$key]); 
-        return $key; 
+                          [GET_GENERATED_KEYS_RESP => \$key]);
+        return $key;
     }
 
     sub STORE {
@@ -731,9 +731,9 @@
         return if $dbh->FETCH('InactiveDestroy');
         my $name = $dbh->FETCH('Name');
 
-        # Log any existing error on the current handle. 
+        # Log any existing error on the current handle.
         my ($err, $errstr, $state) = ($dbh->err, $dbh->errstr, $dbh->state);
-        $dbh->trace_msg("Error on db handle being destroyed: " . 
+        $dbh->trace_msg("Error on db handle being destroyed: " .
                         "($err) $errstr [$state]\n", 3)
             if ($dbh->trace() and $err);
 
@@ -745,8 +745,8 @@
                 $dbh->trace_msg("Rollback '$name' failed: " . $dbh->errstr . "\n", 3);
             $dbh->disconnect() or
                 $dbh->trace_msg("Disconnect '$name' failed: " . $dbh->errstr . "\n", 3);
-        }; 
-        $dbh->trace_msg("Error in DBD::JDBC::db::DESTROY: $@\n", 3) 
+        };
+        $dbh->trace_msg("Error in DBD::JDBC::db::DESTROY: $@\n", 3)
             if ($dbh->trace() and $@);
         1;
     }
@@ -775,10 +775,10 @@
     # args: handle, attribute name, attribute value
     sub _set_attr {
         my ($dbh, $attr, $value) = @_;
-        my ($data); 
+        my ($data);
         _send_request($dbh,
-                      $dbh->FETCH('jdbc_socket'), $dbh->FETCH('jdbc_ber'), 
-                      [SET_CONNECTION_PROPERTY_REQ => 
+                      $dbh->FETCH('jdbc_socket'), $dbh->FETCH('jdbc_ber'),
+                      [SET_CONNECTION_PROPERTY_REQ =>
                        [STRING => $attr,
                         STRING => $value]],
                       [SET_CONNECTION_PROPERTY_RESP => \$data]);
@@ -795,10 +795,10 @@
     sub _count_params {
         my (@chars) = split //, shift;
         my ($params, $state, $i, $last);
-        
+
         # states
         my ($outside_quote, $in_single_quote, $in_double_quote) = (0, 1, 2);
-        
+
         $last = 0;  # Avoid lookahead at end of string.
         $params = 0;
         $state = $outside_quote;
@@ -873,25 +873,25 @@
         # called for parameter indexes larger than the highest
         # index in @values.
 
-        if (@values) { 
+        if (@values) {
             my $i;
             for ($i = 1; $i <= @values; $i++) {
-                $sth->{'jdbc_params'}->{$i} = $values[$i - 1]; 
+                $sth->{'jdbc_params'}->{$i} = $values[$i - 1];
             }
         }
 
         my ($i, @encodelist);
-        my $paramcount = $sth->{'jdbc_params'} 
+        my $paramcount = $sth->{'jdbc_params'}
             ? scalar( keys %{ $sth->{'jdbc_params'} }) : 0;
-        $sth->trace_msg("Warning: number of parameters set ($paramcount) " 
-                        . "does not match NUM_OF_PARAMS (" 
-                        . $sth->FETCH('NUM_OF_PARAMS') . ")", 3) 
+        $sth->trace_msg("Warning: number of parameters set ($paramcount) "
+                        . "does not match NUM_OF_PARAMS ("
+                        . $sth->FETCH('NUM_OF_PARAMS') . ")", 3)
             if $debug && ($paramcount != $sth->FETCH('NUM_OF_PARAMS'));
 
         # encodelist is a list of alternating parameter values/types
         for ($i = 1; $i <= $paramcount; $i++) {
             push @encodelist, $sth->{'jdbc_params'}->{$i};
-            push @encodelist, 
+            push @encodelist,
                $sth->{'jdbc_params_types'}->{$i} || $DBD::JDBC::Types{VARCHAR};
         }
 
@@ -902,16 +902,16 @@
                           [EXECUTE_REQ => [$sth->FETCH('jdbc_handle'),
                                            $paramcount,
                                            \@encodelist]],
-                          [EXECUTE_RESP => 
+                          [EXECUTE_RESP =>
                            [OPTIONAL => [EXECUTE_ROWS_RESP => \$rowcount],
-                            OPTIONAL => 
+                            OPTIONAL =>
                             [EXECUTE_RESULTSET_RESP => \$columncount]]]);
-        
+
         return $sth->set_err(DBD::JDBC::ErrorMessages::bad_execute())
             unless ((defined $rowcount) xor (defined $columncount));
         if (defined $rowcount) {
             $sth->STORE('Active' => 0);
-            $sth->STORE('NUM_OF_FIELDS', 0); 
+            $sth->STORE('NUM_OF_FIELDS', 0);
             $sth->{'jdbc_rowcount'} = $rowcount;
             return $rowcount == 0 ? "0E0" : $rowcount;
         }
@@ -930,14 +930,14 @@
         my $debug = $sth->trace();
         my @row;
 
-        return undef 
+        return undef
             unless _send_request($sth,
-                                 $sth->FETCH('jdbc_socket'), $sth->FETCH('jdbc_ber'), 
+                                 $sth->FETCH('jdbc_socket'), $sth->FETCH('jdbc_ber'),
                                  [FETCH_REQ => $sth->FETCH('jdbc_handle')],
                                  [FETCH_RESP => \@row]);
         if (shift @row) {  # row contains data
             $sth->{'jdbc_rowcount'}++;
-            return $sth->_set_fbav(\@row); 
+            return $sth->_set_fbav(\@row);
         }
         $sth->trace_msg("At end of result set\n", 3) if $debug;
         $sth->finish(); # no more data
@@ -952,8 +952,8 @@
     # This will return the number of rows affected by a DML
     # statement, or the number of rows returned so far by a
     # select statement.
-    sub rows { 
-        return shift->{'jdbc_rowcount'}; 
+    sub rows {
+        return shift->{'jdbc_rowcount'};
     }
 
 
@@ -962,7 +962,7 @@
     # force a commit in AutoCommit mode.  The DBI spec says that
     # finish should have no effect on the connection's
     # transaction state.
-    sub finish { 
+    sub finish {
         my ($sth) = @_;
         $sth->STORE('Active' => 0);
         1;
@@ -978,7 +978,7 @@
     # specified as scalars, if they should be mapped to
     # java.lang.String objects, or as [value,type] pairs (array
     # references) if the parameter type is something other than
-    # String. For example, 
+    # String. For example,
     #  $sth->func("eno", [5003 => SQL_INTEGER], "ResultSet.updateInt");
     # If the method returned void or null, this
     # method will return undef. Otherwise, the return value of
@@ -1020,7 +1020,7 @@
     sub parse_trace_flag {
         my ($flag) = shift;
         return DBI->parse_trace_flag($flag);
-    } 
+    }
 
 
     sub STORE {
@@ -1028,27 +1028,27 @@
 
         if ($attr =~ /^jdbc_/) {
             $sth->{$attr} = $value;
-            my $ok = 1; 
+            my $ok = 1;
             if ($attr eq 'jdbc_longreadall') {
                 $value = ($value ? 1 : 0);  # Canonicalize for server.
                 $sth->{$attr} = $value;
                 $ok = _set_attr($sth, $attr, $value);
             }
             ## TODO: how should we report an error in storing on the server?
-            return; 
+            return;
         }
-        
+
         if ($attr eq 'LongReadLen') {
-            return _set_attr($sth, $attr, $value) && 
-                $sth->SUPER::STORE($attr, $value);             
+            return _set_attr($sth, $attr, $value) &&
+                $sth->SUPER::STORE($attr, $value);
         }
         if ($attr eq 'LongTruncOk') {
-            return _set_attr($sth, $attr, $value ? 1 : 0) && 
-                $sth->SUPER::STORE($attr, $value);             
+            return _set_attr($sth, $attr, $value ? 1 : 0) &&
+                $sth->SUPER::STORE($attr, $value);
         }
         if ($attr eq 'ChopBlanks') {
-            return _set_attr($sth, $attr, $value ? 1 : 0) && 
-                $sth->SUPER::STORE($attr, $value);             
+            return _set_attr($sth, $attr, $value ? 1 : 0) &&
+                $sth->SUPER::STORE($attr, $value);
         }
 
         $sth->SUPER::STORE($attr, $value);
@@ -1069,7 +1069,7 @@
         # statement, so cache them after retrieval.
 
         if ($attr eq 'NAME') {
-            return ($sth->{'jdbc_NAME'} or 
+            return ($sth->{'jdbc_NAME'} or
                     $sth->{'jdbc_NAME'} = _get_attr($sth, $attr, 'STRING'));
         }
         if ($attr eq 'TYPE') {
@@ -1085,15 +1085,15 @@
             });
         }
         if ($attr eq 'PRECISION') {
-            return ($sth->{'jdbc_PRECISION'} or 
+            return ($sth->{'jdbc_PRECISION'} or
                 $sth->{'jdbc_PRECISION'} = _get_attr($sth, $attr, 'INTEGER'));
         }
         if ($attr eq 'SCALE') {
-            return ($sth->{'jdbc_SCALE'} or 
+            return ($sth->{'jdbc_SCALE'} or
                     $sth->{'jdbc_SCALE'} = _get_attr($sth, $attr, 'INTEGER'));
         }
         if ($attr eq 'NULLABLE') {
-            return ($sth->{'jdbc_NULLABLE'} or 
+            return ($sth->{'jdbc_NULLABLE'} or
                 $sth->{'jdbc_NULLABLE'} = _get_attr($sth, $attr, 'INTEGER'));
         }
         if ($attr eq 'CursorName') {
@@ -1120,7 +1120,7 @@
     # disconnected; it's no use talking to the server if the
     # connection's closed. This is intended to let the server get
     # rid of the Statement if this particular statement handle is
-    # being destroyed while the connection is still open. 
+    # being destroyed while the connection is still open.
     sub DESTROY {
         my ($sth) = shift;
         return if $sth->FETCH('InactiveDestroy');
@@ -1129,9 +1129,9 @@
         my $handle = $sth->FETCH('jdbc_handle');
         my $resp;
 
-        # Log any existing error on the current handle. 
+        # Log any existing error on the current handle.
         my ($err, $errstr, $state) = ($sth->err, $sth->errstr, $sth->state);
-        $sth->trace_msg("Error on statement handle being destroyed: " . 
+        $sth->trace_msg("Error on statement handle being destroyed: " .
                         "($err) $errstr [$state]\n", 3)
             if ($sth->trace() and $err);
 
@@ -1144,10 +1144,10 @@
             _send_request($sth,
                           $sth->FETCH('jdbc_socket'), $sth->FETCH('jdbc_ber'),
                           [STATEMENT_DESTROY_REQ => $handle],
-                          [STATEMENT_DESTROY_RESP => \$resp], 
+                          [STATEMENT_DESTROY_RESP => \$resp],
                           "sth::destroy", 1);
         };
-        $sth->trace_msg("Error in DBD::JDBC::st::DESTROY: $@\n", 3) 
+        $sth->trace_msg("Error in DBD::JDBC::st::DESTROY: $@\n", 3)
             if ($sth->trace() and $@);
 
         ## Calling finish as $sth->finish interferes with
@@ -1192,10 +1192,10 @@
         my ($sth, $attr, $value) = @_;
 
         my $data;
-        return 
+        return
             _send_request($sth,
                           $sth->FETCH('jdbc_socket'), $sth->FETCH('jdbc_ber'),
-                          [SET_STATEMENT_PROPERTY_REQ => 
+                          [SET_STATEMENT_PROPERTY_REQ =>
                            [INTEGER => $sth->FETCH('jdbc_handle'),
                             STRING => $attr,
                             STRING => $value]],
@@ -1245,25 +1245,25 @@
     sub _dbi_type {
         my ($jdbc_type) = @_;
 
-        return SQL_VARCHAR     if $jdbc_type == $DBD::JDBC::Types{VARCHAR};  
+        return SQL_VARCHAR     if $jdbc_type == $DBD::JDBC::Types{VARCHAR};
         return SQL_LONGVARCHAR if $jdbc_type == $DBD::JDBC::Types{LONGVARCHAR};
         return SQL_VARBINARY   if $jdbc_type == $DBD::JDBC::Types{VARBINARY};
-        return SQL_LONGVARBINARY if $jdbc_type == $DBD::JDBC::Types{LONGVARBINARY}; 
-        return SQL_BIT         if $jdbc_type == $DBD::JDBC::Types{BIT}; 
-        return SQL_INTEGER     if $jdbc_type == $DBD::JDBC::Types{INTEGER}; 
-        return SQL_NUMERIC     if $jdbc_type == $DBD::JDBC::Types{NUMERIC}; 
-        return SQL_DECIMAL     if $jdbc_type == $DBD::JDBC::Types{DECIMAL}; 
+        return SQL_LONGVARBINARY if $jdbc_type == $DBD::JDBC::Types{LONGVARBINARY};
+        return SQL_BIT         if $jdbc_type == $DBD::JDBC::Types{BIT};
+        return SQL_INTEGER     if $jdbc_type == $DBD::JDBC::Types{INTEGER};
+        return SQL_NUMERIC     if $jdbc_type == $DBD::JDBC::Types{NUMERIC};
+        return SQL_DECIMAL     if $jdbc_type == $DBD::JDBC::Types{DECIMAL};
         return SQL_FLOAT       if $jdbc_type == $DBD::JDBC::Types{FLOAT};
-        return SQL_REAL        if $jdbc_type == $DBD::JDBC::Types{REAL}; 
-        return SQL_DOUBLE      if $jdbc_type == $DBD::JDBC::Types{DOUBLE}; 
-        return SQL_TINYINT     if $jdbc_type == $DBD::JDBC::Types{TINYINT}; 
-        return SQL_SMALLINT    if $jdbc_type == $DBD::JDBC::Types{SMALLINT};  
-        return DBD::JDBC::SQL_BIGINT      if $jdbc_type == $DBD::JDBC::Types{BIGINT}; 
-        return SQL_BINARY      if $jdbc_type == $DBD::JDBC::Types{BINARY}; 
-        return SQL_CHAR        if $jdbc_type == $DBD::JDBC::Types{CHAR}; 
-        return SQL_DATE        if $jdbc_type == $DBD::JDBC::Types{DATE}; 
-        return SQL_TIME        if $jdbc_type == $DBD::JDBC::Types{TIME}; 
-        return SQL_TIMESTAMP   if $jdbc_type == $DBD::JDBC::Types{TIMESTAMP}; 
+        return SQL_REAL        if $jdbc_type == $DBD::JDBC::Types{REAL};
+        return SQL_DOUBLE      if $jdbc_type == $DBD::JDBC::Types{DOUBLE};
+        return SQL_TINYINT     if $jdbc_type == $DBD::JDBC::Types{TINYINT};
+        return SQL_SMALLINT    if $jdbc_type == $DBD::JDBC::Types{SMALLINT};
+        return DBD::JDBC::SQL_BIGINT      if $jdbc_type == $DBD::JDBC::Types{BIGINT};
+        return SQL_BINARY      if $jdbc_type == $DBD::JDBC::Types{BINARY};
+        return SQL_CHAR        if $jdbc_type == $DBD::JDBC::Types{CHAR};
+        return SQL_DATE        if $jdbc_type == $DBD::JDBC::Types{DATE};
+        return SQL_TIME        if $jdbc_type == $DBD::JDBC::Types{TIME};
+        return SQL_TIMESTAMP   if $jdbc_type == $DBD::JDBC::Types{TIMESTAMP};
 
         return SQL_ARRAY       if $jdbc_type == $DBD::JDBC::Types{ARRAY};
         return SQL_BLOB        if $jdbc_type == $DBD::JDBC::Types{BLOB};
@@ -1298,7 +1298,7 @@
     @ISA = qw(Convert::BER);
     $VERSION = $DBD::JDBC::VERSION;
 
-    # Tag numbers. 
+    # Tag numbers.
     sub JDBC_MYSEQUENCE ()                     { 0 }
     sub JDBC_ERROR_RESP ()                     { 0xA + 1000 }
     sub JDBC_CONNECT_REQ ()                    { 0xB }
@@ -1352,104 +1352,104 @@
     DBD::JDBC::BER->define(
  [MYSEQUENCE => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_MYSEQUENCE())],
- [ERROR_RESP => $SEQUENCE, 
+ [ERROR_RESP => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_ERROR_RESP())],
 
- [CONNECT_REQ => $SEQUENCE, 
+ [CONNECT_REQ => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_CONNECT_REQ())],
- [CONNECT_RESP => $NULL,  
+ [CONNECT_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_CONNECT_RESP())],
 
- [DISCONNECT_REQ => $NULL,  
+ [DISCONNECT_REQ => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_DISCONNECT_REQ())],
- [DISCONNECT_RESP => $NULL,  
+ [DISCONNECT_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_DISCONNECT_RESP())],
 
- [COMMIT_REQ=> $NULL,  
+ [COMMIT_REQ=> $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_COMMIT_REQ())],
- [COMMIT_RESP => $NULL,  
+ [COMMIT_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_COMMIT_RESP())],
 
- [ROLLBACK_REQ => $NULL,  
+ [ROLLBACK_REQ => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_ROLLBACK_REQ())],
- [ROLLBACK_RESP => $NULL,  
+ [ROLLBACK_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_ROLLBACK_RESP())],
 
- #[PREPARE_REQ  => $STRING,  
+ #[PREPARE_REQ  => $STRING,
  # ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_PREPARE_REQ())],
- [PREPARE_REQ  => $SEQUENCE,  
+ [PREPARE_REQ  => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_PREPARE_REQ())],
- [PREPARE_RESP => $INTEGER,  
+ [PREPARE_RESP => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_PREPARE_RESP())],
 
- [EXECUTE_REQ  => $SEQUENCE, 
+ [EXECUTE_REQ  => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_EXECUTE_REQ())],
- [EXECUTE_RESP => $SEQUENCE, 
+ [EXECUTE_RESP => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_EXECUTE_RESP())],
 
- [FETCH_REQ => $INTEGER,  
+ [FETCH_REQ => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_FETCH_REQ())],
- [FETCH_RESP => $SEQUENCE, 
+ [FETCH_RESP => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_FETCH_RESP())],
 
- [EXECUTE_ROWS_RESP => $INTEGER,  
+ [EXECUTE_ROWS_RESP => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_EXECUTE_ROWS_RESP())],
 
- [EXECUTE_RESULTSET_RESP => $INTEGER, 
-  ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_EXECUTE_RESULTSET_RESP())], 
+ [EXECUTE_RESULTSET_RESP => $INTEGER,
+  ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_EXECUTE_RESULTSET_RESP())],
 
  [GET_CONNECTION_PROPERTY_REQ => $STRING,
-  ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_GET_CONNECTION_PROPERTY_REQ())], 
+  ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_GET_CONNECTION_PROPERTY_REQ())],
  [GET_CONNECTION_PROPERTY_RESP  => 'MYSEQUENCE',
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, 
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR,
           JDBC_GET_CONNECTION_PROPERTY_RESP())],
 
  [SET_CONNECTION_PROPERTY_REQ => $SEQUENCE,
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, 
-          JDBC_SET_CONNECTION_PROPERTY_REQ())], 
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR,
+          JDBC_SET_CONNECTION_PROPERTY_REQ())],
  [SET_CONNECTION_PROPERTY_RESP  => $NULL,
-  ber_tag(BER_APPLICATION | BER_PRIMITIVE, 
+  ber_tag(BER_APPLICATION | BER_PRIMITIVE,
           JDBC_SET_CONNECTION_PROPERTY_RESP())],
 
  [GET_STATEMENT_PROPERTY_REQ => $SEQUENCE,
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, 
-          JDBC_GET_STATEMENT_PROPERTY_REQ())], 
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR,
+          JDBC_GET_STATEMENT_PROPERTY_REQ())],
  [GET_STATEMENT_PROPERTY_RESP  => 'MYSEQUENCE',
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, 
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR,
           JDBC_GET_STATEMENT_PROPERTY_RESP())],
 
  [SET_STATEMENT_PROPERTY_REQ => $SEQUENCE,
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, 
-          JDBC_SET_STATEMENT_PROPERTY_REQ())], 
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR,
+          JDBC_SET_STATEMENT_PROPERTY_REQ())],
  [SET_STATEMENT_PROPERTY_RESP  => $NULL,
-  ber_tag(BER_APPLICATION | BER_PRIMITIVE, 
+  ber_tag(BER_APPLICATION | BER_PRIMITIVE,
           JDBC_SET_STATEMENT_PROPERTY_RESP())],
 
- [STATEMENT_FINISH_REQ => $INTEGER,  
+ [STATEMENT_FINISH_REQ => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_STATEMENT_FINISH_REQ())],
- [STATEMENT_FINISH_RESP => $NULL,  
+ [STATEMENT_FINISH_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_STATEMENT_FINISH_RESP())],
 
- [STATEMENT_DESTROY_REQ => $INTEGER,  
+ [STATEMENT_DESTROY_REQ => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_STATEMENT_DESTROY_REQ())],
- [STATEMENT_DESTROY_RESP => $NULL,  
+ [STATEMENT_DESTROY_RESP => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_STATEMENT_DESTROY_RESP())],
 
- [PING_REQ => $NULL,  
+ [PING_REQ => $NULL,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_PING_REQ())],
- [PING_RESP => $INTEGER,  
+ [PING_RESP => $INTEGER,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_PING_RESP())],
 
- [GET_GENERATED_KEYS_REQ => $SEQUENCE,  
+ [GET_GENERATED_KEYS_REQ => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_GET_GENERATED_KEYS_REQ())],
  [GET_GENERATED_KEYS_RESP => $STRING,
   ber_tag(BER_APPLICATION | BER_PRIMITIVE, JDBC_GET_GENERATED_KEYS_RESP())],
 
  [HASH => $SEQUENCE,
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_HASH())],  
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_HASH())],
 
  [ERROR => $SEQUENCE,
-  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_ERROR())],  
+  ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_ERROR())],
 
  # I was going to have the func response objects just be
  # SEQUENCEs. However, when I tried to read the response data
@@ -1458,12 +1458,12 @@
  # errors, so I gave up and went to MYSEQUENCE. The dumps of the
  # buffers looked fine.
 
- [CONNECTION_FUNC_REQ  => $SEQUENCE, 
+ [CONNECTION_FUNC_REQ  => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_CONNECTION_FUNC_REQ())],
- [CONNECTION_FUNC_RESP => 'MYSEQUENCE', 
+ [CONNECTION_FUNC_RESP => 'MYSEQUENCE',
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_CONNECTION_FUNC_RESP())],
 
- [STATEMENT_FUNC_REQ  => $SEQUENCE, 
+ [STATEMENT_FUNC_REQ  => $SEQUENCE,
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_STATEMENT_FUNC_REQ())],
  [STATEMENT_FUNC_RESP => 'MYSEQUENCE',
   ber_tag(BER_APPLICATION | BER_CONSTRUCTOR, JDBC_STATEMENT_FUNC_RESP())],
@@ -1488,16 +1488,16 @@
 
     sub unpack_array {
         my ($self, $ber, $arg) = @_;
-        
+
         if ($self->_content_length($ber) == 0) {
             @$arg = ();
             return 1;
         }
-        
+
         my ($ber2, $tag, $i, $field);
-        # Unpack the buffer into a new BER object. 
+        # Unpack the buffer into a new BER object.
         $self->unpack($ber, \$ber2);
-        
+
         # TODO: There should be a better way to do this. CHOICE, ANY, ... ?
         # tag() will return undef when the end of the buffer is reached
         for ($i = 0; $tag = $ber2->tag(); $i++) {
@@ -1526,26 +1526,26 @@
     sub pack_array {
         my ($self, $ber, $arg) = @_;  # $arg is an array ref
         my ($handle, $param_count, $param_list) = @$arg;
-        
+
         # Convert::BER::_encode should have packed the tag value already.
         # Build up the message body using a new BER object.
         my $ber2 = $ber->new;
         $ber2->_encode([INTEGER => $handle]);  # handle
-        
+
         $ber2->_encode([INTEGER => $param_count]);  # parameter count
-        
+
         my $i = 0;
         while ($i < scalar(@$param_list)) {
             my ($value, $type) = ($param_list->[$i], $param_list->[$i+1]);
             $i += 2;
-            
+
             # Parameters may be null, but a type will always be specified.
-            defined $value 
-                ? $ber2->_encode([STRING => $value]) 
+            defined $value
+                ? $ber2->_encode([STRING => $value])
                     : $ber2->_encode([NULL => 0]);
             $ber2->_encode([INTEGER => $type]);
         }
-        
+
         $ber->pack_length(CORE::length($ber2->[ Convert::BER::_BUFFER() ]));
         $ber->[ Convert::BER::_BUFFER() ] .= $ber2->[ Convert::BER::_BUFFER() ];
         1;
@@ -1557,14 +1557,14 @@
     # TODO: Can this be another MYSEQUENCE?
     sub unpack_array {
         my ($self, $ber, $arg) = @_;
-        
+
         my ($ber2, $tag, $i, $field);
         $self->unpack($ber, \$ber2);
-        
+
         # This value indicates whether or not there's a row to be decoded.
         $ber2->decode(INTEGER => \$i);
-        push @$arg, $i;    
-        
+        push @$arg, $i;
+
         if ($i) {
             # tag() will return undef when the end of the buffer is reached
             while ($tag = $ber2->tag()) {
@@ -1591,10 +1591,10 @@
     # ERROR packets onto the array argument.
     sub unpack_array {
         my ($self, $ber, $arg) = @_;
-        
+
         my ($ber2);
         $self->unpack($ber, \$ber2);
-        
+
         # tag() will return undef when the end of the buffer is reached;
         while ($ber2->tag()) {
             my %error;
@@ -1620,24 +1620,24 @@
     sub pack_array {
         my ($self, $ber, $arg) = @_;  # $arg is an array ref
         my ($method, $param_list) = @$arg;
-        
+
         # Convert::BER::_encode should have packed the tag value already.
         # Build up the message body using a new BER object.
         my $ber2 = $ber->new;
         $ber2->_encode([STRING => $method]);  # method name
-        
+
         my $i = 0;
         while ($i < scalar(@$param_list)) {
             my ($value, $type) = ($param_list->[$i], $param_list->[$i+1]);
             $i += 2;
-            
+
             # Parameters may be null, but a type will always be specified.
-            defined $value 
-                ? $ber2->_encode([STRING => $value]) 
+            defined $value
+                ? $ber2->_encode([STRING => $value])
                     : $ber2->_encode([NULL => 0]);
             $ber2->_encode([INTEGER => $type]);
         }
-        
+
         $ber->pack_length(CORE::length($ber2->[ Convert::BER::_BUFFER() ]));
         $ber->[ Convert::BER::_BUFFER() ] .= $ber2->[ Convert::BER::_BUFFER() ];
         1;
@@ -1656,25 +1656,25 @@
     sub pack_array {
         my ($self, $ber, $arg) = @_;  # $arg is an array ref
         my ($handle, $method, $param_list) = @$arg;
-        
+
         # Convert::BER::_encode should have packed the tag value already.
         # Build up the message body using a new BER object.
         my $ber2 = $ber->new;
         $ber2->_encode([INTEGER => $handle]);  # handle
         $ber2->_encode([STRING => $method]);  # method name
-        
+
         my $i = 0;
         while ($i < scalar(@$param_list)) {
             my ($value, $type) = ($param_list->[$i], $param_list->[$i+1]);
             $i += 2;
-            
+
             # Parameters may be null, but a type will always be specified.
-            defined $value 
-                ? $ber2->_encode([STRING => $value]) 
+            defined $value
+                ? $ber2->_encode([STRING => $value])
                     : $ber2->_encode([NULL => 0]);
             $ber2->_encode([INTEGER => $type]);
         }
-        
+
         $ber->pack_length(CORE::length($ber2->[ Convert::BER::_BUFFER() ]));
         $ber->[ Convert::BER::_BUFFER() ] .= $ber2->[ Convert::BER::_BUFFER() ];
         1;
@@ -1706,7 +1706,7 @@ sub bad_autocommit_value($) {
     return "Unsupported AutoCommit value $_[0]";
 }
 
-sub send_error($) { 
+sub send_error($) {
     return (100, $_[0], $sql_state);
 }
 
@@ -1722,7 +1722,7 @@ sub missing_dsn_component($) {
     return (103, "Missing $_[0] in dsn", $sql_state);
 }
 
-sub socket_error($) { 
+sub socket_error($) {
     return (104, "Failed to open socket to server: $_[0]", $sql_state);
 }
 
@@ -1735,4 +1735,3 @@ sub bad_func_method($) {
 }
 
 1;
-
