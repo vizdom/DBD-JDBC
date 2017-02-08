@@ -1568,7 +1568,7 @@
         if ($i) {
             # tag() will return undef when the end of the buffer is reached
             while ($tag = $ber2->tag()) {
-                elsif ($tag == $ber2->BOOLEAN()) {
+                if ($tag == $ber2->BOOLEAN()) {
                     $ber2->decode(BOOLEAN => \$field);
                     push @$arg, $field;
                 }
@@ -1580,7 +1580,7 @@
                     $ber2->decode(STRING => \$field);
                     push @$arg, $field;
                 }
-                if ($tag == $ber2->NULL()) {
+                elsif ($tag == $ber2->NULL()) {
                     $ber2->decode(NULL => \$field);
                     push @$arg, undef;
                 }
