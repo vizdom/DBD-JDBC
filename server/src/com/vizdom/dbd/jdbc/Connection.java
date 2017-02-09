@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.Socket;
 import java.sql.*;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
 import org.apache.log4j.Logger;
@@ -740,6 +741,16 @@ public class Connection implements Runnable
                 dbd.setNextException(se);
                 throw dbd;
             }
+        }
+
+        if (gLog.isTraceEnabled())
+        {
+	        Enumeration keys = mStatementTable.keys();
+	        gLog.trace("Open statements:");
+	        while (keys.hasMoreElements()) {
+	            int key = (Integer) keys.nextElement();
+	            gLog.trace("- " + key);
+	        }
         }
 
         ExecuteResponse resp;
