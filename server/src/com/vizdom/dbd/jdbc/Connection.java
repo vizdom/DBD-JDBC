@@ -859,6 +859,7 @@ public class Connection implements Runnable
                         gLog.trace("getting column " + (i + 1) + "/" +
                             rsmd.getColumnName(i + 1) + "; type " + type);
                     }
+
                     switch (type)
                     {
                     case Types.BIT:
@@ -960,6 +961,10 @@ public class Connection implements Runnable
                     default:  // This will include any Types.OTHER columns.
                         row[i] = rs.getString(i + 1);
                         break;
+                    }
+
+                    if (rs.wasNull()) {
+                        row[i] = null;
                     }
                 }
                 catch (IOException ioError)
