@@ -1227,6 +1227,7 @@ public class Connection implements Runnable
     {
         StatementHolder holder = mGetStatementHolder(aRequest.getHandle());
         //holder.finish();
+        holder.close();
         return new StatementFinishResponse();
     }
 
@@ -1250,9 +1251,7 @@ public class Connection implements Runnable
         StatementHolder holder = (StatementHolder) mStatementTable.remove(
             new Integer(handle));
         // XXX: Should this be a runtime exception? Can the user cause this?
-        if (holder == null)
-            throw new DbdException(DbdException.gINVALID_STATEMENT_HANDLE);
-        else
+        if (holder != null)
         {
             if (gLog.isTraceEnabled())
                 gLog.trace("Destroying statement " + handle);

@@ -965,6 +965,16 @@
     sub finish {
         my ($sth) = @_;
         $sth->STORE('Active' => 0);
+
+        my $handle = $sth->FETCH('jdbc_handle');
+        my $resp;
+
+        return undef
+            unless _send_request($sth,
+                                 $sth->FETCH('jdbc_socket'), $sth->FETCH('jdbc_ber'),
+                                 [STATEMENT_FINISH_REQ => $handle],
+                                 [STATEMENT_FINISH_RESP => \$resp]);
+
         1;
     }
 
@@ -1157,7 +1167,7 @@
         ## should just do that explicitly here, but if finish
         ## ever does something else, we might want that something
         ## also.
-        finish($sth);
+        # finish($sth);
 
         1;
     }
