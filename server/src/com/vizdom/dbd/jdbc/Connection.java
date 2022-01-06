@@ -33,8 +33,9 @@ import java.net.Socket;
 import java.sql.*;
 import java.util.Hashtable;
 import java.util.Properties;
-import org.apache.log4j.Logger;
-import org.apache.log4j.NDC;
+import org.apache.logging.log4j.CloseableThreadContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -51,7 +52,7 @@ import org.apache.log4j.NDC;
 public class Connection implements Runnable
 {
     /** The log4j logger. */
-    private static final Logger gLog = Logger.getLogger(Connection.class);
+    private static final Logger gLog = LogManager.getLogger(Connection.class);
 
     /** The DBI constant for non-nullable columns. */
     private static final Integer sDbiNoNulls = new Integer(0);
@@ -170,169 +171,171 @@ public class Connection implements Runnable
     {
         mThreadId = "[" + Thread.currentThread().getName() + "]";
 
-        NDC.push(mThreadId); 
-
-        BerObject request;
-        BerObject response = null;
-        boolean connected = true;
-
-        gLog.info("Client started");
-
-        while (connected)
+        try (CloseableThreadContext.Instance ctc =
+            CloseableThreadContext.push(mThreadId))
         {
-            try
+
+            BerObject request;
+            BerObject response = null;
+            boolean connected = true;
+
+            gLog.info("Client started");
+
+            while (connected)
             {
-                /* Re-implement this, treating Connection as a Visitor
-                 * on the fooRequest classes. For example,
-                 * this switch would become request.handleMessage(this)
-                 * and each fooRequest would have a 
-                 * handleMessage(Connection conn) {conn.handleMessage(this)}
-                 */
-                request = mBerModule.readFrom(mIn);
-                if (request == null)
-                    throw new FatalException("Client disconnected");
-                if (gLog.isDebugEnabled())
-                    gLog.debug("Request: " + request);
-
-                BerIdentifier id = request.getIdentifier(); 
-                if (id.getTagClass() != BerTypes.APPLICATION)
-                    throw new FatalException("Unknown request received " + id);
-
-                int tagNumber = id.getTagNumber();
-                switch (tagNumber)
+                try
                 {
-                case BerDbdModule.gDISCONNECT_REQUEST:
-                    connected = false;
-                    response = handleRequest((DisconnectRequest) request); 
-                    break;
+                    /* Re-implement this, treating Connection as a Visitor
+                     * on the fooRequest classes. For example,
+                     * this switch would become request.handleMessage(this)
+                     * and each fooRequest would have a 
+                     * handleMessage(Connection conn) {conn.handleMessage(this)}
+                     */
+                    request = mBerModule.readFrom(mIn);
+                    if (request == null)
+                        throw new FatalException("Client disconnected");
+                    if (gLog.isDebugEnabled())
+                        gLog.debug("Request: " + request);
+
+                    BerIdentifier id = request.getIdentifier(); 
+                    if (id.getTagClass() != BerTypes.APPLICATION)
+                        throw new FatalException("Unknown request received " + id);
+
+                    int tagNumber = id.getTagNumber();
+                    switch (tagNumber)
+                    {
+                    case BerDbdModule.gDISCONNECT_REQUEST:
+                        connected = false;
+                        response = handleRequest((DisconnectRequest) request); 
+                        break;
                 
-                case BerDbdModule.gCONNECT_REQUEST:
+                    case BerDbdModule.gCONNECT_REQUEST:
+                        try
+                        {
+                            response = handleRequest((ConnectRequest) request);
+                        }
+                        catch (SQLException sql)
+                        {
+                            connected = false;
+                            throw sql;
+                        }
+                        break;
+
+                    case BerDbdModule.gPING_REQUEST:
+                        response = handleRequest((PingRequest) request);
+                        break;
+                    case BerDbdModule.gCOMMIT_REQUEST: 
+                        response = handleRequest((CommitRequest) request); 
+                        break;
+                    case BerDbdModule.gROLLBACK_REQUEST: 
+                        response = handleRequest((RollbackRequest) request); 
+                        break;
+                    case BerDbdModule.gPREPARE_REQUEST: 
+                        response = handleRequest((PrepareRequest) request); 
+                        break;
+                    case BerDbdModule.gEXECUTE_REQUEST: 
+                        response = handleRequest((ExecuteRequest) request); 
+                        break;
+                    case BerDbdModule.gFETCH_REQUEST: 
+                        response = handleRequest((FetchRequest) request); 
+                        break;
+                    case BerDbdModule.gGET_CONNECTION_PROPERTY_REQUEST: 
+                        response = handleRequest(
+                            (GetConnectionPropertyRequest) request); 
+                        break;
+                    case BerDbdModule.gSET_CONNECTION_PROPERTY_REQUEST: 
+                        response = handleRequest(
+                            (SetConnectionPropertyRequest) request); 
+                        break;
+                    case BerDbdModule.gGET_STATEMENT_PROPERTY_REQUEST: 
+                        response = handleRequest(
+                            (GetStatementPropertyRequest) request); 
+                        break;
+                    case BerDbdModule.gSET_STATEMENT_PROPERTY_REQUEST: 
+                        response = handleRequest(
+                            (SetStatementPropertyRequest) request); 
+                        break;
+                    case BerDbdModule.gSTATEMENT_FINISH_REQUEST: 
+                        response = handleRequest(
+                            (StatementFinishRequest) request); 
+                        break;
+                    case BerDbdModule.gSTATEMENT_DESTROY_REQUEST: 
+                        response = handleRequest(
+                            (StatementDestroyRequest) request); 
+                        break;
+
+                    case BerDbdModule.gCONNECTION_FUNC_REQUEST: 
+                        response = handleRequest(
+                            (ConnectionFuncRequest) request); 
+                        break;
+
+                    case BerDbdModule.gSTATEMENT_FUNC_REQUEST: 
+                        response = handleRequest(
+                            (StatementFuncRequest) request); 
+                        break;
+
+                    case BerDbdModule.gGET_GENERATED_KEYS_REQUEST:
+                        response = handleRequest(
+                            (GetGeneratedKeysRequest) request);
+                        break;
+                    
+                    default: 
+                        throw new DbdException(DbdException.gUNKNOWN_REQUEST,
+                            new String[] { String.valueOf(tagNumber) });
+                    }
+                
+                    if (response != null)
+                    {
+                        response.writeTo(mOut);
+                        mOut.flush(); 
+                        if (gLog.isDebugEnabled())
+                            gLog.debug("Response: " + response);
+                        response = null;
+                    }
+                    else
+                        throw new DbdException(DbdException.gNO_RESPONSE);
+                }
+                catch (SQLException sqlError)
+                {
+                    gLog.warn("Error", sqlError);
                     try
                     {
-                        response = handleRequest((ConnectRequest) request);
+                        mSendError(sqlError);
                     }
-                    catch (SQLException sql)
+                    catch (FatalException fatal)
                     {
-                        connected = false;
-                        throw sql;
+                        gLog.warn("Failed to send error", fatal);
                     }
-                    break;
-
-                case BerDbdModule.gPING_REQUEST:
-                    response = handleRequest((PingRequest) request);
-                    break;
-                case BerDbdModule.gCOMMIT_REQUEST: 
-                    response = handleRequest((CommitRequest) request); 
-                    break;
-                case BerDbdModule.gROLLBACK_REQUEST: 
-                    response = handleRequest((RollbackRequest) request); 
-                    break;
-                case BerDbdModule.gPREPARE_REQUEST: 
-                    response = handleRequest((PrepareRequest) request); 
-                    break;
-                case BerDbdModule.gEXECUTE_REQUEST: 
-                    response = handleRequest((ExecuteRequest) request); 
-                    break;
-                case BerDbdModule.gFETCH_REQUEST: 
-                    response = handleRequest((FetchRequest) request); 
-                    break;
-                case BerDbdModule.gGET_CONNECTION_PROPERTY_REQUEST: 
-                    response = handleRequest(
-                        (GetConnectionPropertyRequest) request); 
-                    break;
-                case BerDbdModule.gSET_CONNECTION_PROPERTY_REQUEST: 
-                    response = handleRequest(
-                        (SetConnectionPropertyRequest) request); 
-                    break;
-                case BerDbdModule.gGET_STATEMENT_PROPERTY_REQUEST: 
-                    response = handleRequest(
-                        (GetStatementPropertyRequest) request); 
-                    break;
-                case BerDbdModule.gSET_STATEMENT_PROPERTY_REQUEST: 
-                    response = handleRequest(
-                        (SetStatementPropertyRequest) request); 
-                    break;
-                case BerDbdModule.gSTATEMENT_FINISH_REQUEST: 
-                    response = handleRequest(
-                        (StatementFinishRequest) request); 
-                    break;
-                case BerDbdModule.gSTATEMENT_DESTROY_REQUEST: 
-                    response = handleRequest(
-                        (StatementDestroyRequest) request); 
-                    break;
-
-                case BerDbdModule.gCONNECTION_FUNC_REQUEST: 
-                    response = handleRequest(
-                        (ConnectionFuncRequest) request); 
-                    break;
-
-                case BerDbdModule.gSTATEMENT_FUNC_REQUEST: 
-                    response = handleRequest(
-                        (StatementFuncRequest) request); 
-                    break;
-
-                case BerDbdModule.gGET_GENERATED_KEYS_REQUEST:
-                    response = handleRequest(
-                        (GetGeneratedKeysRequest) request);
-                    break;
-                    
-                default: 
-                    throw new DbdException(DbdException.gUNKNOWN_REQUEST,
-                        new String[] { String.valueOf(tagNumber) });
                 }
-                
-                if (response != null)
+                catch (Throwable throwable)
                 {
-                    response.writeTo(mOut);
-                    mOut.flush(); 
-                    if (gLog.isDebugEnabled())
-                        gLog.debug("Response: " + response);
-                    response = null;
-                }
-                else
-                    throw new DbdException(DbdException.gNO_RESPONSE);
-            }
-            catch (SQLException sqlError)
-            {
-                gLog.warn("Error", sqlError);
-                try
-                {
-                    mSendError(sqlError);
-                }
-                catch (FatalException fatal)
-                {
-                    gLog.warn("Failed to send error", fatal);
+                    connected = false;
+                    gLog.warn("Rollback due to fatal error"); 
+                    mRollback();
+                    gLog.fatal("Error; ending connection", throwable);
+                    try
+                    {
+                        mSendError(new DbdException(
+                                DbdException.gGENERIC_EXCEPTION,
+                                new String[] { throwable.toString() }));
+                    }
+                    catch (FatalException fatal)
+                    {
+                        gLog.warn("Failed to send error", fatal);
+                    }
                 }
             }
-            catch (Throwable throwable)
-            {
-                connected = false;
-                gLog.warn("Rollback due to fatal error"); 
-                mRollback();
-                gLog.fatal("Error; ending connection", throwable);
-                try
-                {
-                    mSendError(new DbdException(
-                        DbdException.gGENERIC_EXCEPTION,
-                        new String[] { throwable.toString() }));
-                }
-                catch (FatalException fatal)
-                {
-                    gLog.warn("Failed to send error", fatal);
-                }
-            }
-        }
 
-        mDoDisconnect(true); 
-        try { mOut.close(); } catch (IOException e) { }
-        mOut = null; 
-        try { mIn.close(); } catch (IOException e) { }
-        mIn = null; 
-        try { mSocket.close(); } catch (IOException e) { }
-        mSocket = null;
+            mDoDisconnect(true); 
+            try { mOut.close(); } catch (IOException e) { }
+            mOut = null; 
+            try { mIn.close(); } catch (IOException e) { }
+            mIn = null; 
+            try { mSocket.close(); } catch (IOException e) { }
+            mSocket = null;
         
-        gLog.info("Client done");
-        NDC.pop();
+            gLog.info("Client done");
+        }
     }
 
     /**

@@ -42,7 +42,7 @@
 
     use vars qw($methods_installed); 
 
-    $DBD::JDBC::VERSION = '0.71';
+    $DBD::JDBC::VERSION = '0.72';
     
     $DBD::JDBC::drh = undef;
 

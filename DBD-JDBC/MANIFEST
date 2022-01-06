@@ -7,7 +7,10 @@ MANIFEST			This list of files
 README
 README.basis
 server/dbd_jdbc.jar
-server/log4j.properties
+server/log4j-api-2.17.1.jar
+server/log4j-core-2.17.1.jar
+server/log4j2.properties
+server/sample-command-line.txt
 t/00-load.t
 t/01_env.t
 t/02_connect.t

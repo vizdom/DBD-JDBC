@@ -2,6 +2,8 @@
 
 <project name="dbd-jdbc-server" default="build" basedir=".">
 
+  <property name="javac.source" value="1.8"/>
+  <property name="javac.target" value="1.8"/>
   <property file="dbd-jdbc.properties"/>
   <property name="src.dir" location="src"/>
   <property name="test.dir" location="test"/>
@@ -11,13 +13,16 @@
   <property name="test.class" value="*Test"/>
   <property name="lib.dir" location="lib"/>
   <property name="dist.dir" location="dist"/>
-  <property name="log4j.jar" location="lib/log4j-1.2.13.jar"/>
   <property name="junit.jar" location="lib/junit-4.8.2.jar"/>
 
-  <path id="build.classpath">
+  <path id="log4j.classpath">
     <fileset dir="${lib.dir}">
-      <include name="*.jar"/>
+      <include name="log4j*.jar"/>
     </fileset>
+  </path>
+
+  <path id="build.classpath">
+    <path refid="log4j.classpath"/>
   </path>
 
   <target name="clean">
@@ -38,7 +43,9 @@
     <javac srcdir="${src.dir}"
            destdir="${build-src.dir}"
            includeantruntime="false"
-           debug="on">
+           debug="on"
+           source="${javac.source}"
+           target="${javac.target}">
       <compilerarg value="-Xlint:unchecked"/>
       <classpath refid="build.classpath"/>
     </javac>
@@ -57,7 +64,12 @@
          compress="false"
          excludes="MANIFEST.MF"
          manifest="${build-src.dir}/MANIFEST.MF"/>
-    <copy file="log4j.properties" todir="${dist.dir}"/>
+
+    <copy todir="${dist.dir}">
+      <fileset dir="lib" includes="log4j*.jar"/>
+      <fileset dir="." includes="log4j2.properties"/>
+      <fileset dir="." includes="sample-command-line.txt"/>
+    </copy>
   </target>
 
   <target name="test" depends="build">
@@ -72,12 +84,15 @@
       <classpath location="${junit.jar}"/>
     </javac>
 
+    <dirname property="project.dir" file="${ant.file}"/>
     <junit printsummary="yes" haltonfailure="yes" forkmode="once" fork="true"
            dir="${basedir}" maxmemory="512m">
-      <classpath location="${log4j.jar}"/>
+      <classpath refid="log4j.classpath"/>
+      <classpath location="${project.dir}"/>
       <classpath location="${junit.jar}"/>
       <classpath location="${build-src.dir}"/>
       <classpath location="${build-test.dir}"/>
+      <sysproperty key="log4j2.disableJmx" value="true"/>
       <formatter type="plain" usefile="false"/>
       <batchtest>
         <fileset dir="${test.dir}">

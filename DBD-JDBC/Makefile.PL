@@ -36,6 +36,8 @@ sub libscan {
 }
 sub test {
     my @cp = ("server/dbd_jdbc.jar",
+              "server/log4j-api-2.17.1.jar",
+              "server/log4j-core-2.17.1.jar",
               "server",
               "t/hsqldb/hsqldb-1.8.0.2.jar",
               "t/hsqldb/log4j-1.2.13.jar",

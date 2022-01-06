@@ -32,7 +32,8 @@ import java.io.Writer;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.HashMap;
 import com.vizdom.util.UnreachableCodeException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class provides an interface to character encoding
@@ -57,7 +58,7 @@ public abstract class CharacterEncoder implements CharacterEncodable
 {
     /** Log instance for this class. */
     private static final Logger gLog =
-        Logger.getLogger(CharacterEncoder.class);
+        LogManager.getLogger(CharacterEncoder.class);
 
     /** A cache of instantiated encoders. */
     private static HashMap<String, CharacterEncoder> gEncoders;

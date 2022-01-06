@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.NDC;
+import org.apache.logging.log4j.CloseableThreadContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -44,17 +44,11 @@ import org.apache.log4j.NDC;
  * <li> <code>jdbc.drivers</code>: the names of the JDBC drivers
  *      which this server should load on startup
  * <li> <code>dbd.port</code>: the port on which this server will listen
- * <li> <code>dbd.trace</code>: (optional) the logging level for the server
- *      <p>This property should be set to one of "off" or
- *      "silent", "fatal", "error", "warn" or "brief", "info" or
- *      "verbose", "debug" or "tedious", "trace" or "abusive" or
- *      "all". The default is "off". Logging may also be
- *      controlled using a log4j.properties file.
  * </ul>
  * For example,
  * <pre>
  * java -Djdbc.drivers=oracle.jdbc.driver.OracleDriver -Ddbd.port=12345 \
- * -Ddbd.trace=info com.vizdom.dbd.jdbc.Server
+ *  com.vizdom.dbd.jdbc.Server
  * </pre>
  * <p>
  * As a thread, this class is intended to be used within another 
@@ -73,7 +67,7 @@ import org.apache.log4j.NDC;
 public class Server implements Runnable
 {
     /** log4j logger. */
-    private static final Logger gLog = Logger.getLogger(Server.class); 
+    private static final Logger gLog = LogManager.getLogger(Server.class);
 
 
     /**
@@ -91,9 +85,6 @@ public class Server implements Runnable
             System.err.println("Required system properties:");
             System.err.println("  -Djdbc.drivers=[driverlist]");
             System.err.println("  -Ddbd.port=[portnum]");
-            System.err.println("Optional system properties:");
-            System.err.println(
-                "  -Ddbd.trace=[silent|brief|verbose|tedious|abusive]");
             return;
         }
 
@@ -118,85 +109,47 @@ public class Server implements Runnable
             throw new FatalException("Unable to access property dbd.port.");
         }
 
-        NDC.push("[Server]");
+        try (CloseableThreadContext.Instance ctc =
+             CloseableThreadContext.push("Server"))
+        {
 
-        String trace = System.getProperty("dbd.trace");
-        if (trace != null)
-        {
-            Logger appLogger = gLog.getLogger("com.vizdom.dbd.jdbc");
-            if ("silent".equalsIgnoreCase(trace) ||
-                "off".equalsIgnoreCase(trace))
+            // Set the default character encoding. If the client transmits
+            // another character encoding, it must use ASCII to do so.
+            try
             {
-                appLogger.setLevel((Level) Level.OFF);
+                BerDbdModule.gBerModule.setCharacterEncoding("ASCII");
             }
-            else if ("fatal".equalsIgnoreCase(trace))
+            catch (UnsupportedEncodingException e)
             {
-                appLogger.setLevel((Level) Level.FATAL); 
+                throw new FatalException(
+                    "ASCII character encoding is not supported"); 
             }
-            else if ("error".equalsIgnoreCase(trace))
-            {
-                appLogger.setLevel((Level) Level.ERROR); 
-            }
-            else if ("brief".equalsIgnoreCase(trace) ||
-                "warn".equalsIgnoreCase(trace))
-            {
-                appLogger.setLevel((Level) Level.WARN);
-            }
-            else if ("verbose".equalsIgnoreCase(trace) ||
-                "info".equalsIgnoreCase(trace))
-            {
-                appLogger.setLevel((Level) Level.INFO);
-            }
-            else if ("tedious".equalsIgnoreCase(trace) ||
-                "debug".equalsIgnoreCase(trace))
-            {
-                appLogger.setLevel((Level) Level.DEBUG);
-            }
-            else if ("abusive".equalsIgnoreCase(trace) ||
-                "trace".equalsIgnoreCase(trace) ||
-                "all".equalsIgnoreCase(trace))
-            {
-                appLogger.setLevel((Level) Level.TRACE);
-            }
-        }
 
-        // Set the default character encoding. If the client transmits
-        // another character encoding, it must use ASCII to do so.
-        try
-        {
-            BerDbdModule.gBerModule.setCharacterEncoding("ASCII");
-        }
-        catch (UnsupportedEncodingException e)
-        {
-            throw new FatalException(
-                "ASCII character encoding is not supported"); 
-        }
-
-        ServerSocket ss = null;
-        try
-        {
-            ss = new ServerSocket(portnum);
-            gLog.info("[Server] accepting connections");
-            while (true)
+            ServerSocket ss = null;
+            try
             {
-                try
+                ss = new ServerSocket(portnum);
+                gLog.info("[Server] accepting connections");
+                while (true)
                 {
-                    gCreateThread(ss.accept());
-                }
-                catch (Exception e)
-                {
-                    gLog.warn("[Server] " + e.toString());
+                    try
+                    {
+                        gCreateThread(ss.accept());
+                    }
+                    catch (Exception e)
+                    {
+                        gLog.warn("[Server] " + e.toString());
+                    }
                 }
             }
-        }
-        catch (IOException ioError)
-        {
-            throw new FatalException(ioError.toString());
-        }
-        finally
-        {
-            try { if (ss != null) ss.close(); } catch (Throwable t) {}
-            NDC.pop();
+            catch (IOException ioError)
+            {
+                throw new FatalException(ioError.toString());
+            }
+            finally
+            {
+                try { if (ss != null) ss.close(); } catch (Throwable t) {}
+            }
         }
     }
 
